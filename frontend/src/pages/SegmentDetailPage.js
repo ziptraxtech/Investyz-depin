@@ -15,6 +15,62 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Mock data for segments and plans
+const mockSegmentsData = {
+  'renewable-energy': {
+    id: 'renewable-energy',
+    name: 'Renewable Energy',
+    slug: 'renewable-energy',
+    description: 'Invest in solar and wind energy infrastructure projects',
+    icon: 'Sun',
+    total_tvl: 2500000,
+    investors_count: 1250,
+    apy_range: { min: 8, max: 15 },
+    risk_level: 'Low'
+  },
+  'data-centers': {
+    id: 'data-centers',
+    name: 'Data Centers',
+    slug: 'data-centers',
+    description: 'Green data center infrastructure investments',
+    icon: 'Server',
+    total_tvl: 3200000,
+    investors_count: 890,
+    apy_range: { min: 10, max: 18 },
+    risk_level: 'Medium'
+  },
+  'ev-charging': {
+    id: 'ev-charging',
+    name: 'EV Charging',
+    slug: 'ev-charging',
+    description: 'Electric vehicle charging station networks',
+    icon: 'Zap',
+    total_tvl: 1800000,
+    investors_count: 650,
+    apy_range: { min: 12, max: 20 },
+    risk_level: 'Medium'
+  }
+};
+
+const mockPlans = [
+  {
+    plan_id: 1,
+    name: 'Basic Plan',
+    duration_months: 12,
+    apy: 12,
+    min_investment: 100,
+    max_investment: 10000
+  },
+  {
+    plan_id: 2,
+    name: 'Premium Plan',
+    duration_months: 24,
+    apy: 15,
+    min_investment: 500,
+    max_investment: 50000
+  }
+];
+
 const SegmentDetailPage = () => {
   const { segmentId } = useParams();
   const navigate = useNavigate();
@@ -31,6 +87,19 @@ const SegmentDetailPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // If no backend, use mock data
+        if (!API_URL || API_URL === '') {
+          const mockSegment = mockSegmentsData[segmentId];
+          if (mockSegment) {
+            setSegment(mockSegment);
+            setPlans(mockPlans);
+            setSelectedPlan(mockPlans[0]);
+            setInvestmentAmount(mockPlans[0].min_investment);
+          }
+          setLoading(false);
+          return;
+        }
+        
         const [segmentRes, plansRes] = await Promise.all([
           fetch(`${API_URL}/api/segments/${segmentId}`),
           fetch(`${API_URL}/api/plans?segment_id=${segmentId}`),
@@ -40,6 +109,10 @@ const SegmentDetailPage = () => {
           const segmentResult = await segmentRes.json();
           const segmentData = segmentResult.data || segmentResult;
           setSegment(segmentData);
+        } else {
+          // Fallback to mock
+          const mockSegment = mockSegmentsData[segmentId];
+          if (mockSegment) setSegment(mockSegment);
         }
 
         if (plansRes.ok) {
@@ -51,9 +124,22 @@ const SegmentDetailPage = () => {
             setSelectedPlan(plans[0]);
             setInvestmentAmount(plans[0].min_investment);
           }
+        } else {
+          // Fallback to mock
+          setPlans(mockPlans);
+          setSelectedPlan(mockPlans[0]);
+          setInvestmentAmount(mockPlans[0].min_investment);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
+        // Fallback to mock data
+        const mockSegment = mockSegmentsData[segmentId];
+        if (mockSegment) {
+          setSegment(mockSegment);
+          setPlans(mockPlans);
+          setSelectedPlan(mockPlans[0]);
+          setInvestmentAmount(mockPlans[0].min_investment);
+        }
       } finally {
         setLoading(false);
       }
@@ -65,6 +151,19 @@ const SegmentDetailPage = () => {
   useEffect(() => {
     const calculateReturns = async () => {
       if (!selectedPlan) return;
+
+      // If no backend, calculate locally
+      if (!API_URL || API_URL === '') {
+        const apy = selectedPlan.apy / 100;
+        const total = investmentAmount * (1 + apy);
+        const earnings = total - investmentAmount;
+        setProjectedReturns({
+          total_return: total,
+          net_earnings: earnings,
+          monthly_payout: earnings / selectedPlan.duration_months
+        });
+        return;
+      }
 
       try {
         const response = await fetch(`${API_URL}/api/calculator`, {
@@ -80,9 +179,28 @@ const SegmentDetailPage = () => {
           const result = await response.json();
           const data = result.data || result;
           setProjectedReturns(data);
+        } else {
+          // Fallback calculation
+          const apy = selectedPlan.apy / 100;
+          const total = investmentAmount * (1 + apy);
+          const earnings = total - investmentAmount;
+          setProjectedReturns({
+            total_return: total,
+            net_earnings: earnings,
+            monthly_payout: earnings / selectedPlan.duration_months
+          });
         }
       } catch (error) {
         console.error('Failed to calculate returns:', error);
+        // Fallback calculation
+        const apy = selectedPlan.apy / 100;
+        const total = investmentAmount * (1 + apy);
+        const earnings = total - investmentAmount;
+        setProjectedReturns({
+          total_return: total,
+          net_earnings: earnings,
+          monthly_payout: earnings / selectedPlan.duration_months
+        });
       }
     };
 
@@ -97,6 +215,12 @@ const SegmentDetailPage = () => {
 
     if (!selectedPlan) {
       toast.error('Please select a plan');
+      return;
+    }
+
+    // If no backend, show demo message
+    if (!API_URL || API_URL === '') {
+      toast.info('Demo mode: Backend required for actual investments');
       return;
     }
 
