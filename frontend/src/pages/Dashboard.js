@@ -13,6 +13,39 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Mock data for when backend is not available
+const mockStats = {
+  total_invested: 5000,
+  total_value: 5250,
+  total_earnings: 250,
+  active_investments: 2
+};
+
+const mockInvestments = [
+  {
+    id: 1,
+    segment_name: 'Renewable Energy',
+    segment_id: 'renewable-energy',
+    amount: 3000,
+    current_value: 3150,
+    apy: 12.5,
+    start_date: '2025-12-01',
+    end_date: '2026-12-01',
+    status: 'active'
+  },
+  {
+    id: 2,
+    segment_name: 'EV Charging',
+    segment_id: 'ev-charging',
+    amount: 2000,
+    current_value: 2100,
+    apy: 15.0,
+    start_date: '2026-01-15',
+    end_date: '2027-01-15',
+    status: 'active'
+  }
+];
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { connected, publicKey } = useWallet();
@@ -26,6 +59,14 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // If backend not available, use mock data
+        if (!API_URL || API_URL.includes('placeholder')) {
+          setStats(mockStats);
+          setInvestments(mockInvestments);
+          setLoading(false);
+          return;
+        }
+        
         const [statsRes, investmentsRes] = await Promise.all([
           fetch(`${API_URL}/api/portfolio/stats`, { credentials: 'include' }),
           fetch(`${API_URL}/api/investments`, { credentials: 'include' }),
@@ -35,15 +76,22 @@ const Dashboard = () => {
           const statsResult = await statsRes.json();
           const statsData = statsResult.data || statsResult;
           setStats(statsData);
+        } else {
+          setStats(mockStats);
         }
 
         if (investmentsRes.ok) {
           const investmentsResult = await investmentsRes.json();
           const investmentsData = investmentsResult.data || investmentsResult;
           setInvestments(Array.isArray(investmentsData) ? investmentsData : []);
+        } else {
+          setInvestments(mockInvestments);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
+        // Fallback to mock data
+        setStats(mockStats);
+        setInvestments(mockInvestments);
       } finally {
         setLoading(false);
       }

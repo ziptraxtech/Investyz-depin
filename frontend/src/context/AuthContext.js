@@ -21,6 +21,13 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = useCallback(async () => {
     try {
+      // Skip auth check if backend not available
+      if (!API_URL || API_URL.includes('placeholder')) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/api/auth/me`, {
         credentials: 'include',
       });

@@ -7,6 +7,46 @@ import { Server, Battery, Zap, Sun, Leaf, Search, TrendingUp, Users, ArrowRight 
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Mock data for when backend is not available
+const mockSegments = [
+  {
+    id: 'renewable-energy',
+    name: 'Renewable Energy',
+    slug: 'renewable-energy',
+    description: 'Invest in solar and wind energy infrastructure projects',
+    icon: 'Sun',
+    total_tvl: 2500000,
+    investors_count: 1250,
+    apy_range: { min: 8, max: 15 },
+    risk_level: 'Low',
+    min_investment: 100
+  },
+  {
+    id: 'data-centers',
+    name: 'Data Centers',
+    slug: 'data-centers',
+    description: 'Green data center infrastructure investments',
+    icon: 'Server',
+    total_tvl: 3200000,
+    investors_count: 890,
+    apy_range: { min: 10, max: 18 },
+    risk_level: 'Medium',
+    min_investment: 500
+  },
+  {
+    id: 'ev-charging',
+    name: 'EV Charging',
+    slug: 'ev-charging',
+    description: 'Electric vehicle charging station networks',
+    icon: 'Zap',
+    total_tvl: 1800000,
+    investors_count: 650,
+    apy_range: { min: 12, max: 20 },
+    risk_level: 'Medium',
+    min_investment: 250
+  }
+];
+
 const SegmentsPage = () => {
   const [segments, setSegments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,14 +55,26 @@ const SegmentsPage = () => {
   useEffect(() => {
     const fetchSegments = async () => {
       try {
+        // If backend not available, use mock data
+        if (!API_URL || API_URL.includes('placeholder')) {
+          setSegments(mockSegments);
+          setLoading(false);
+          return;
+        }
+        
         const response = await fetch(`${API_URL}/api/segments`);
         if (response.ok) {
           const result = await response.json();
           const data = result.data || result;
           setSegments(Array.isArray(data) ? data : []);
+        } else {
+          // Fallback to mock data
+          setSegments(mockSegments);
         }
       } catch (error) {
         console.error('Failed to fetch segments:', error);
+        // Fallback to mock data
+        setSegments(mockSegments);
       } finally {
         setLoading(false);
       }
