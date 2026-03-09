@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -76,13 +76,9 @@ const mockSegments = [
 const LandingPage = () => {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-<<<<<<< HEAD
   const [segments, setSegments] = useState([]);
   const [featureIndex, setFeatureIndex] = useState(0);
   const [isFeatureSliderPaused, setIsFeatureSliderPaused] = useState(false);
-=======
-  const [segments, setSegments] = useState(mockSegments);
->>>>>>> investyzupstream/main
 
   useEffect(() => {
     const fetchSegments = async () => {
@@ -148,7 +144,7 @@ const LandingPage = () => {
       title: 'Carbon Negative',
       description: 'Your investments actively reduce carbon emissions and support sustainable growth.',
       stat: '50K+',
-      statLabel: 'Tons CO₂ Offset',
+      statLabel: 'Tons COâ‚‚ Offset',
     },
     {
       icon: PiggyBank,
@@ -273,7 +269,7 @@ const LandingPage = () => {
       icon: Server,
       title: 'Data Centers',
       subtitle: 'Zero-Downtime Power Orchestration',
-      description: 'The AI agents act as "Virtual Facility Managers." They monitor electricity pricing and grid load to decide—without human input—when to switch the data center from grid power to BESS, ensuring the lowest carbon footprint and cost.',
+      description: 'The AI agents act as "Virtual Facility Managers." They monitor electricity pricing and grid load to decideâ€”without human inputâ€”when to switch the data center from grid power to BESS, ensuring the lowest carbon footprint and cost.',
       result: '30% reduction in energy costs',
       resultDetail: 'through autonomous demand-response participation',
       gradient: 'from-blue-500 to-cyan-500',
@@ -558,7 +554,7 @@ const LandingPage = () => {
                 AI-Powered <span className="bg-gradient-to-r from-teal-300 to-cyan-300 bg-clip-text text-transparent">Investment Segments</span>
               </h2>
               <p className="text-lg md:text-xl text-slate-200 max-w-4xl leading-relaxed">
-                By integrating Agentic AI�autonomous systems that can reason, plan, and act independently�we move beyond diagnostics into self-diagnosing infrastructure while you diversify across sustainable categories.
+                By integrating Agentic AI—autonomous systems that can reason, plan, and act independently—we move beyond diagnostics into self-diagnosing infrastructure while you diversify across sustainable categories.
               </p>
             </div>
             <Button
@@ -746,6 +742,7 @@ const LandingPage = () => {
 };
 
 export default LandingPage;
+
 
 
 
