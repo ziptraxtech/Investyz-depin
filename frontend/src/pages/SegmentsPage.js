@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -144,7 +144,6 @@ const SegmentsPage = () => {
       setFetchError('');
 
       try {
-<<<<<<< HEAD
         const endpoint = `${API_URL}/api/segments`;
         let loadedSegments = [];
 
@@ -188,28 +187,6 @@ const SegmentsPage = () => {
 
         setSegments(sortSegmentsForDisplay(FALLBACK_SEGMENTS));
         setFetchError('Live data is temporarily unavailable. Showing fallback segments.');
-=======
-        // If backend not available, use mock data
-        if (!API_URL || API_URL.includes('placeholder')) {
-          setSegments(mockSegments);
-          setLoading(false);
-          return;
-        }
-        
-        const response = await fetch(`${API_URL}/api/segments`);
-        if (response.ok) {
-          const result = await response.json();
-          const data = result.data || result;
-          setSegments(Array.isArray(data) ? data : []);
-        } else {
-          // Fallback to mock data
-          setSegments(mockSegments);
-        }
-      } catch (error) {
-        console.error('Failed to fetch segments:', error);
-        // Fallback to mock data
-        setSegments(mockSegments);
->>>>>>> investyzupstream/main
       } finally {
         setLoading(false);
       }
@@ -394,3 +371,4 @@ const SegmentsPage = () => {
 };
 
 export default SegmentsPage;
+

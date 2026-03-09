@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
@@ -13,9 +14,8 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-<<<<<<< HEAD
 
   const getResponseData = useCallback((payload) => payload?.data ?? payload, []);
 
@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch(`${API_URL}/api/auth/me`, {
         credentials: 'include',
       });
+
       if (response.ok) {
         const payload = await response.json();
         const authenticatedUser = saveAuthenticatedUser(payload);
@@ -60,15 +61,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const startExternalGoogleAuth = () => {
-=======
-
-  const login = () => {
->>>>>>> investyzupstream/main
-    const redirectUrl = window.location.origin + '/auth/callback';
+    const redirectUrl = `${window.location.origin}/auth/callback`;
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
-<<<<<<< HEAD
   const signupWithEmail = async ({ name, email, password }) => {
     const response = await fetch(`${API_URL}/api/auth/signup`, {
       method: 'POST',
@@ -76,12 +72,13 @@ export const AuthProvider = ({ children }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password }),
     });
+
     const payload = await response.json();
     if (!response.ok || !payload?.success) {
       throw new Error(payload?.message || 'Signup failed');
     }
-    const authenticatedUser = saveAuthenticatedUser(payload);
-    return authenticatedUser;
+
+    return saveAuthenticatedUser(payload);
   };
 
   const loginWithEmail = async ({ email, password }) => {
@@ -91,12 +88,13 @@ export const AuthProvider = ({ children }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
+
     const payload = await response.json();
     if (!response.ok || !payload?.success) {
       throw new Error(payload?.message || 'Login failed');
     }
-    const authenticatedUser = saveAuthenticatedUser(payload);
-    return authenticatedUser;
+
+    return saveAuthenticatedUser(payload);
   };
 
   const loginWithGoogle = async (idToken) => {
@@ -106,12 +104,13 @@ export const AuthProvider = ({ children }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_token: idToken }),
     });
+
     const payload = await response.json();
     if (!response.ok || !payload?.success) {
       throw new Error(payload?.message || 'Google login failed');
     }
-    const authenticatedUser = saveAuthenticatedUser(payload);
-    return authenticatedUser;
+
+    return saveAuthenticatedUser(payload);
   };
 
   const logout = async () => {
@@ -123,9 +122,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     }
-=======
-  const logout = () => {
->>>>>>> investyzupstream/main
+
     setUser(null);
     navigate('/');
   };
@@ -136,8 +133,6 @@ export const AuthProvider = ({ children }) => {
     }
     return true;
   };
-
-  const checkAuth = () => {};
 
   return (
     <AuthContext.Provider
@@ -162,7 +157,6 @@ export const AuthProvider = ({ children }) => {
 
 export const AuthCallback = () => {
   const navigate = useNavigate();
-<<<<<<< HEAD
   const location = useLocation();
   const { setUser } = useAuth();
   const hasProcessed = useRef(false);
@@ -207,9 +201,6 @@ export const AuthCallback = () => {
 
     processAuth();
   }, [location, navigate, setUser]);
-=======
-  useEffect(() => { navigate('/'); }, [navigate]);
->>>>>>> investyzupstream/main
 
   return (
     <div className="min-h-screen flex items-center justify-center hero-gradient">
