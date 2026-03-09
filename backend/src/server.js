@@ -13,10 +13,10 @@ const startServer = async () => {
     await connectDB();
     
     // Start Express server
-    const server = app.listen(env.PORT, '0.0.0.0', () => {
+    const server = app.listen(env.PORT, env.HOST, () => {
       logger.info(`🚀 Server running on port ${env.PORT}`);
       logger.info(`📍 Environment: ${env.NODE_ENV}`);
-      logger.info(`🔗 API URL: http://0.0.0.0:${env.PORT}/api`);
+      logger.info(`🔗 API URL: http://${env.HOST === '0.0.0.0' ? 'localhost' : env.HOST}:${env.PORT}/api`);
     });
 
     // Graceful shutdown
@@ -38,3 +38,4 @@ const startServer = async () => {
 };
 
 startServer();
+

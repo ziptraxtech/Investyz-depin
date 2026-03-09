@@ -179,8 +179,14 @@ const Profile = () => {
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Google Authentication</p>
-                  <p className="text-sm text-muted-foreground">Signed in with Google OAuth</p>
+                  <p className="font-medium">Authentication Method</p>
+                  <p className="text-sm text-muted-foreground">
+                    {user.auth_provider === 'google'
+                      ? 'Signed in with Google'
+                      : user.auth_provider === 'email'
+                        ? 'Signed in with email and password'
+                        : 'Signed in with Emergent OAuth'}
+                  </p>
                 </div>
               </div>
               <div className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-sm font-medium">

@@ -29,6 +29,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  password_hash: {
+    type: String,
+    default: null,
+  },
+  auth_provider: {
+    type: String,
+    enum: ['email', 'google', 'emergent'],
+    default: 'email',
+  },
+  google_sub: {
+    type: String,
+    default: null,
+    index: true,
+  },
   wallet_address: {
     type: String,
     default: null,
@@ -61,6 +75,7 @@ const userSchema = new mongoose.Schema({
     transform: (doc, ret) => {
       delete ret._id;
       delete ret.__v;
+      delete ret.password_hash;
       return ret;
     },
   },

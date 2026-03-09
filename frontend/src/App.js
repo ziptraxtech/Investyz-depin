@@ -11,6 +11,7 @@ import SegmentDetailPage from './pages/SegmentDetailPage';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import { PaymentSuccess, PaymentCancel } from './pages/PaymentPages';
+import AuthPage from './pages/AuthPage';
 import '@/App.css';
 
 // Protected Route Component
@@ -52,6 +53,8 @@ const AppRouter = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/segments" element={<SegmentsPage />} />
       <Route path="/segments/:segmentId" element={<SegmentDetailPage />} />
+      <Route path="/login" element={<AuthPage mode="login" />} />
+      <Route path="/signup" element={<AuthPage mode="signup" />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/dashboard"
@@ -92,11 +95,14 @@ const AppRouter = () => {
 
 // Layout Component
 const Layout = ({ children }) => {
+  const location = useLocation();
+  const isAuthScreen = location.pathname === '/login' || location.pathname === '/signup';
+
   return (
-    <div className="dark">
-      <Navbar />
+    <div className="dark app-texture">
+      {!isAuthScreen && <Navbar />}
       <main>{children}</main>
-      <Footer />
+      {!isAuthScreen && <Footer />}
     </div>
   );
 };
