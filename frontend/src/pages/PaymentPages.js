@@ -23,6 +23,13 @@ export const PaymentSuccess = () => {
       return;
     }
 
+    // If no backend, show demo message
+    if (!API_URL || API_URL === '') {
+      setStatus('success');
+      setPaymentData({ amount: 1000, segment_name: 'Demo Investment' });
+      return;
+    }
+
     const pollPaymentStatus = async (attempts = 0) => {
       const maxAttempts = 5;
       const pollInterval = 2000;

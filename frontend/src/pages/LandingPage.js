@@ -39,25 +39,71 @@ const LANDING_SEGMENT_PRIORITY = {
   'green-credits': 5,
 };
 
+// Mock segments for when backend is not available
+const mockSegments = [
+  {
+    id: 'renewable-energy',
+    name: 'Renewable Energy',
+    slug: 'renewable-energy',
+    description: 'Solar and wind energy projects',
+    icon: 'Sun',
+    total_tvl: 2500000,
+    investors_count: 1250,
+    apy_range: { min: 8, max: 15 }
+  },
+  {
+    id: 'data-centers',
+    name: 'Data Centers',
+    slug: 'data-centers',
+    description: 'Green data infrastructure',
+    icon: 'Server',
+    total_tvl: 3200000,
+    investors_count: 890,
+    apy_range: { min: 10, max: 18 }
+  },
+  {
+    id: 'ev-charging',
+    name: 'EV Charging',
+    slug: 'ev-charging',
+    description: 'Electric vehicle networks',
+    icon: 'Zap',
+    total_tvl: 1800000,
+    investors_count: 650,
+    apy_range: { min: 12, max: 20 }
+  }
+];
+
 const LandingPage = () => {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [segments, setSegments] = useState([]);
   const [featureIndex, setFeatureIndex] = useState(0);
   const [isFeatureSliderPaused, setIsFeatureSliderPaused] = useState(false);
+=======
+  const [segments, setSegments] = useState(mockSegments);
+>>>>>>> investyzupstream/main
 
   useEffect(() => {
     const fetchSegments = async () => {
+      // If no backend, use mock data
+      if (!API_URL || API_URL === '') {
+        setSegments(mockSegments);
+        return;
+      }
+      
       try {
         const response = await fetch(`${API_URL}/api/segments`);
         if (response.ok) {
           const result = await response.json();
           // Handle both formats: direct array or {success, data} wrapper
           const data = result.data || result;
-          setSegments(Array.isArray(data) ? data : []);
+          setSegments(Array.isArray(data) ? data : mockSegments);
         }
       } catch (error) {
         console.error('Failed to fetch segments:', error);
+        // Fallback to mock data on error
+        setSegments(mockSegments);
       }
     };
     fetchSegments();
