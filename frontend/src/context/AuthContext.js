@@ -17,7 +17,18 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
+
+  const getResponseData = useCallback((payload) => payload?.data ?? payload, []);
+
+  const saveAuthenticatedUser = useCallback((payload) => {
+    const data = getResponseData(payload);
+    const authenticatedUser = data?.user ?? data;
+    if (authenticatedUser?.email) {
+      setUser(authenticatedUser);
+      return authenticatedUser;
+    }
+    return null;
+  }, [getResponseData]);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -25,8 +36,11 @@ export const AuthProvider = ({ children }) => {
         credentials: 'include',
       });
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
+        const payload = await response.json();
+        const authenticatedUser = saveAuthenticatedUser(payload);
+        if (!authenticatedUser) {
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -36,16 +50,64 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [saveAuthenticatedUser]);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   const login = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    navigate('/login');
+  };
+
+  const startExternalGoogleAuth = () => {
     const redirectUrl = window.location.origin + '/auth/callback';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+
+  const signupWithEmail = async ({ name, email, password }) => {
+    const response = await fetch(`${API_URL}/api/auth/signup`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.message || 'Signup failed');
+    }
+    const authenticatedUser = saveAuthenticatedUser(payload);
+    return authenticatedUser;
+  };
+
+  const loginWithEmail = async ({ email, password }) => {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.message || 'Login failed');
+    }
+    const authenticatedUser = saveAuthenticatedUser(payload);
+    return authenticatedUser;
+  };
+
+  const loginWithGoogle = async (idToken) => {
+    const response = await fetch(`${API_URL}/api/auth/google`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: idToken }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.message || 'Google login failed');
+    }
+    const authenticatedUser = saveAuthenticatedUser(payload);
+    return authenticatedUser;
   };
 
   const logout = async () => {
@@ -88,7 +150,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, logout, checkAuth, connectWallet }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        loading,
+        login,
+        startExternalGoogleAuth,
+        signupWithEmail,
+        loginWithEmail,
+        loginWithGoogle,
+        logout,
+        checkAuth,
+        connectWallet,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -124,9 +200,11 @@ export const AuthCallback = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-          navigate('/dashboard', { state: { user: data.user } });
+          const payload = await response.json();
+          const data = payload?.data || payload;
+          const authenticatedUser = data?.user || data;
+          setUser(authenticatedUser);
+          navigate('/dashboard', { state: { user: authenticatedUser } });
         } else {
           console.error('Auth failed');
           navigate('/');

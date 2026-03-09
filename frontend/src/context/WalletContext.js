@@ -177,20 +177,29 @@ export const WalletProvider = ({ children }) => {
     }
   }, [checkConnection, handleAccountsChanged, handleChainChanged]);
 
+  const getInjectedProviders = useCallback(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return [];
+    if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length > 0) {
+      return window.ethereum.providers;
+    }
+    return [window.ethereum];
+  }, []);
+
   const getProvider = useCallback((type) => {
     if (typeof window === 'undefined') return null;
+    const providers = getInjectedProviders();
 
     switch (type) {
       case WALLET_TYPES.METAMASK:
-        return window.ethereum?.isMetaMask ? window.ethereum : null;
+        return providers.find((provider) => provider?.isMetaMask) || null;
       case WALLET_TYPES.TRUST_WALLET:
-        return window.ethereum?.isTrust ? window.ethereum : null;
+        return providers.find((provider) => provider?.isTrust || provider?.isTrustWallet) || null;
       case WALLET_TYPES.COINBASE:
-        return window.ethereum?.isCoinbaseWallet ? window.ethereum : null;
+        return providers.find((provider) => provider?.isCoinbaseWallet) || null;
       default:
-        return window.ethereum || null;
+        return providers[0] || null;
     }
-  }, []);
+  }, [getInjectedProviders]);
 
   const connect = useCallback(async (type = WALLET_TYPES.METAMASK) => {
     setConnecting(true);
@@ -242,9 +251,12 @@ export const WalletProvider = ({ children }) => {
 
     } catch (err) {
       console.error('Wallet connection error:', err);
-      setError(err.message);
+      const errorMessage = err?.code === 4001
+        ? 'Connection request rejected in wallet'
+        : (err?.message || 'Failed to connect to wallet');
+      setError(errorMessage);
       setConnecting(false);
-      return { success: false, error: err.message };
+      return { success: false, error: errorMessage };
     }
   }, [getProvider, switchToPolygon]);
 

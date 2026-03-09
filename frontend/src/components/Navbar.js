@@ -17,7 +17,7 @@ import BrandLogo from './BrandLogo';
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const { user, login, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { connected, publicKey, disconnect } = useWallet();
   const navigate = useNavigate();
   const location = useLocation();
@@ -115,13 +115,25 @@ const Navbar = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button
-                  onClick={login}
-                  className="rounded-full px-6"
-                  data-testid="login-btn"
-                >
-                  Get Started
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/login')}
+                    className="rounded-full px-5 text-slate-100 border-slate-700 hover:bg-slate-800"
+                    data-testid="login-btn"
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/signup')}
+                    className="rounded-full px-5 shadow-md hover:shadow-lg transition-all"
+                    data-testid="signup-btn"
+                  >
+                    Signup
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -188,15 +200,29 @@ const Navbar = () => {
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    className="w-full rounded-full"
-                    onClick={() => {
-                      login();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Get Started
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full"
+                      onClick={() => {
+                        navigate('/login');
+                        setMobileMenuOpen(false);
+                      }}
+                      data-testid="mobile-login-btn"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      className="w-full rounded-full"
+                      onClick={() => {
+                        navigate('/signup');
+                        setMobileMenuOpen(false);
+                      }}
+                      data-testid="mobile-signup-btn"
+                    >
+                      Signup
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

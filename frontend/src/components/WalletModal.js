@@ -128,7 +128,7 @@ const WalletModal = ({ open, onOpenChange }) => {
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-sm text-muted-foreground">Connected Address</p>
                   <Badge variant={isOnPolygon ? 'default' : 'secondary'} className="gap-1">
-                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    <div className="w-2 h-2 rounded-full bg-teal-400" />
                     {isOnPolygon ? 'Polygon' : `Chain ${chainId}`}
                   </Badge>
                 </div>
@@ -163,9 +163,9 @@ const WalletModal = ({ open, onOpenChange }) => {
           ) : (
             <>
               {/* Polygon Network Badge */}
-              <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 mb-2">
-                <div className="w-3 h-3 rounded-full bg-purple-500" />
-                <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+              <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 mb-2">
+                <div className="w-3 h-3 rounded-full bg-teal-400" />
+                <span className="text-sm font-medium text-teal-600 dark:text-teal-300">
                   Polygon Network Only
                 </span>
               </div>

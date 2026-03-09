@@ -5,24 +5,148 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Server, Battery, Zap, Sun, Leaf, Search, TrendingUp, Users, ArrowRight } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+const FALLBACK_SEGMENTS = [
+  {
+    segment_id: 'battery-storage',
+    name: 'Battery Energy Storage',
+    description: 'Support grid-scale battery storage systems that store renewable energy and stabilize power grids.',
+    short_description: 'Store energy, power futures',
+    image_url: 'https://images.unsplash.com/photo-1715605569694-4cc47c9fb535?crop=entropy&cs=srgb&fm=jpg&q=85',
+    icon: 'Battery',
+    features: ['Grid Stabilization', 'Peak Shaving', 'Frequency Regulation'],
+    total_tvl: 32000000,
+    investors_count: 1923,
+  },
+  {
+    segment_id: 'ev-charging',
+    name: 'EV Fast Charging',
+    description: 'Accelerate the electric vehicle revolution by investing in fast-charging infrastructure.',
+    short_description: 'Charge the future',
+    image_url: 'https://images.unsplash.com/photo-1765272088009-100c96a4cd4e?crop=entropy&cs=srgb&fm=jpg&q=85',
+    icon: 'Zap',
+    features: ['350kW Ultra-Fast', 'Strategic Locations', '24/7 Availability'],
+    total_tvl: 28000000,
+    investors_count: 3421,
+  },
+  {
+    segment_id: 'data-centers',
+    name: 'Data Centers',
+    description: 'Invest in sustainable, energy-efficient data centers powering the digital economy.',
+    short_description: 'Power the cloud sustainably',
+    image_url: 'https://images.unsplash.com/photo-1733187633171-3b1c0c6ce708?crop=entropy&cs=srgb&fm=jpg&q=85',
+    icon: 'Server',
+    features: ['100% Renewable Energy', 'PUE < 1.2', 'Tier 4 Certified'],
+    total_tvl: 45000000,
+    investors_count: 2847,
+  },
+  {
+    segment_id: 'renewable-energy',
+    name: 'Renewable Energy Plants',
+    description: 'Invest directly in solar farms, wind parks, and hydroelectric facilities.',
+    short_description: "Harvest nature's power",
+    image_url: 'https://images.unsplash.com/photo-1755585129999-7b29cf3baebe?crop=entropy&cs=srgb&fm=jpg&q=85',
+    icon: 'Sun',
+    features: ['20+ Year PPAs', 'Carbon Neutral', 'Diversified Portfolio'],
+    total_tvl: 67000000,
+    investors_count: 4156,
+  },
+  {
+    segment_id: 'green-credits',
+    name: 'Green Credit Projects',
+    description: 'Participate in carbon credit and environmental offset projects.',
+    short_description: 'Offset, earn, impact',
+    image_url: 'https://images.unsplash.com/photo-1683444595829-e74e68fcce22?crop=entropy&cs=srgb&fm=jpg&q=85',
+    icon: 'Leaf',
+    features: ['Verified Credits', 'Biodiversity Projects', 'Transparent Tracking'],
+    total_tvl: 18000000,
+    investors_count: 1287,
+  },
+];
+
+const normalizeSegmentsPayload = (result) => {
+  const data = result?.data || result;
+  if (!Array.isArray(data)) return [];
+  return data.filter((segment) =>
+    segment &&
+    typeof segment.name === 'string' &&
+    typeof segment.short_description === 'string' &&
+    Array.isArray(segment.features)
+  );
+};
+
+const SEGMENT_PRIORITY = {
+  'battery-storage': 1,
+  'ev-charging': 2,
+  'data-centers': 3,
+  'renewable-energy': 4,
+  'green-credits': 5,
+};
+
+const sortSegmentsForDisplay = (list) =>
+  [...list].sort((a, b) => {
+    const aPriority = SEGMENT_PRIORITY[a.segment_id] ?? Number.MAX_SAFE_INTEGER;
+    const bPriority = SEGMENT_PRIORITY[b.segment_id] ?? Number.MAX_SAFE_INTEGER;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
 
 const SegmentsPage = () => {
   const [segments, setSegments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
 
   useEffect(() => {
     const fetchSegments = async () => {
+      setLoading(true);
+      setFetchError('');
+
       try {
-        const response = await fetch(`${API_URL}/api/segments`);
-        if (response.ok) {
-          const result = await response.json();
-          const data = result.data || result;
-          setSegments(Array.isArray(data) ? data : []);
+        const endpoint = `${API_URL}/api/segments`;
+        let loadedSegments = [];
+
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            const response = await fetch(endpoint, { cache: 'no-store' });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            const result = await response.json();
+            loadedSegments = normalizeSegmentsPayload(result);
+            if (loadedSegments.length > 0) break;
+          } catch (attemptError) {
+            if (attempt === 2) throw attemptError;
+          }
+        }
+
+        if (loadedSegments.length > 0) {
+          const sortedSegments = sortSegmentsForDisplay(loadedSegments);
+          setSegments(sortedSegments);
+          localStorage.setItem('segments_cache_v1', JSON.stringify(sortedSegments));
+        } else {
+          throw new Error('Empty segments response');
         }
       } catch (error) {
         console.error('Failed to fetch segments:', error);
+        const cachedSegments = localStorage.getItem('segments_cache_v1');
+        if (cachedSegments) {
+          try {
+            const parsed = JSON.parse(cachedSegments);
+            const normalized = normalizeSegmentsPayload(parsed);
+            if (normalized.length > 0) {
+              setSegments(sortSegmentsForDisplay(normalized));
+              setFetchError('Live data is temporarily unavailable. Showing cached segments.');
+              return;
+            }
+          } catch (cacheError) {
+            console.error('Failed to parse cached segments:', cacheError);
+          }
+        }
+
+        setSegments(sortSegmentsForDisplay(FALLBACK_SEGMENTS));
+        setFetchError('Live data is temporarily unavailable. Showing fallback segments.');
       } finally {
         setLoading(false);
       }
@@ -49,10 +173,12 @@ const SegmentsPage = () => {
     return `$${(value / 1000).toFixed(0)}K`;
   };
 
-  const filteredSegments = segments.filter((segment) =>
-    segment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    segment.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSegments = segments.filter((segment) => {
+    const name = String(segment.name || '').toLowerCase();
+    const description = String(segment.description || segment.short_description || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return name.includes(search) || description.includes(search);
+  });
 
   const totalTVL = segments.reduce((sum, seg) => sum + seg.total_tvl, 0);
   const totalInvestors = segments.reduce((sum, seg) => sum + seg.investors_count, 0);
@@ -72,7 +198,7 @@ const SegmentsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6 font-['Outfit']">
-              Investment <span className="text-gradient">Segments</span>
+              <span className="text-white">Investment</span>{' '}<span className="text-gradient">Segments</span>
             </h1>
             <p className="text-lg md:text-xl leading-relaxed text-muted-foreground mb-8">
               Explore our diverse portfolio of sustainable infrastructure assets. 
@@ -116,6 +242,12 @@ const SegmentsPage = () => {
       {/* Segments Grid */}
       <section className="py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {fetchError && (
+            <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {fetchError}
+            </div>
+          )}
+
           <div className="grid md:grid-cols-2 gap-8">
             {filteredSegments.map((segment) => (
               <Link
@@ -187,7 +319,9 @@ const SegmentsPage = () => {
 
           {filteredSegments.length === 0 && (
             <div className="text-center py-16">
-              <p className="text-muted-foreground">No segments found matching your search.</p>
+              <p className="text-muted-foreground">
+                {searchTerm ? 'No segments found matching your search.' : 'No segments available right now.'}
+              </p>
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ require('dotenv').config();
 const env = {
   // Server
   PORT: process.env.PORT || 8001,
+  HOST: process.env.HOST || 'localhost',
   NODE_ENV: process.env.NODE_ENV || 'development',
   
   // Database
@@ -22,6 +23,9 @@ const env = {
   
   // Stripe
   STRIPE_API_KEY: process.env.STRIPE_API_KEY || '',
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   
   // Wallet Configuration
   wallets: {

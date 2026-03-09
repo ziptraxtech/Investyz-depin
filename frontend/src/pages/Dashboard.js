@@ -145,8 +145,8 @@ const Dashboard = () => {
           <Card className="bg-card/50 border-border/50" data-testid="stat-total-invested">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <PiggyBank className="h-5 w-5 text-blue-500" />
+                <div className="p-2 rounded-lg bg-teal-500/10">
+                  <PiggyBank className="h-5 w-5 text-teal-400" />
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">Total Invested</p>
@@ -171,8 +171,8 @@ const Dashboard = () => {
           <Card className="bg-card/50 border-border/50" data-testid="stat-investments">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Clock className="h-5 w-5 text-purple-500" />
+                <div className="p-2 rounded-lg bg-cyan-500/10">
+                  <Clock className="h-5 w-5 text-cyan-400" />
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">Active Investments</p>

@@ -40,7 +40,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-2">
             <BrandLogo className="mb-4" frameClassName="h-11 w-[180px]" />
-            <p className="text-sm text-black mb-6 max-w-xs">
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
               Invest in sustainable infrastructure. Earn yields while powering the green economy on Solana.
             </p>
             <div className="flex gap-3">
@@ -59,13 +59,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4 font-['Outfit'] text-black">Product</h4>
+            <h4 className="font-semibold mb-4 font-['Outfit'] text-foreground">Product</h4>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-sm text-black hover:text-black/80 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -75,13 +75,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4 font-['Outfit'] text-black">Company</h4>
+            <h4 className="font-semibold mb-4 font-['Outfit'] text-foreground">Company</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-sm text-black hover:text-black/80 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -91,13 +91,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4 font-['Outfit'] text-black">Legal</h4>
+            <h4 className="font-semibold mb-4 font-['Outfit'] text-foreground">Legal</h4>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-sm text-black hover:text-black/80 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -108,13 +108,13 @@ const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-black">
+          <p className="text-sm text-muted-foreground">
             Copyright {currentYear} Investyz. All rights reserved.
           </p>
-          <div className="flex items-center gap-2 text-sm text-black">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Powered by</span>
-            <span className="font-semibold text-black">Polygon</span>
-            <div className="w-4 h-4 rounded-full bg-gradient-to-r from-[#8247E5] to-[#A379FF]" />
+            <span className="font-semibold text-foreground">Polygon</span>
+            <div className="w-4 h-4 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400" />
           </div>
         </div>
       </div>
