@@ -60,8 +60,20 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
+  const getExternalAuthRedirectOrigin = () => {
+    const configuredOrigin = process.env.REACT_APP_AUTH_REDIRECT_ORIGIN?.trim();
+    if (configuredOrigin) {
+      return configuredOrigin.replace(/\/+$/, '');
+    }
+
+    const { protocol, hostname, port } = window.location;
+    // Use canonical apex domain in production so Emergent doesn't display "Www".
+    const resolvedHost = hostname.toLowerCase() === 'www.investyz.com' ? 'investyz.com' : hostname;
+    return `${protocol}//${resolvedHost}${port ? `:${port}` : ''}`;
+  };
+
   const startExternalGoogleAuth = () => {
-    const redirectUrl = `${window.location.origin}/auth/callback`;
+    const redirectUrl = `${getExternalAuthRedirectOrigin()}/auth/callback`;
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
