@@ -12,7 +12,7 @@ import { getFrontendApiUrl } from '../lib/apiConfig';
 import { FALLBACK_PLANS, FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   Server, Battery, Zap, Sun, Leaf, ArrowLeft, Clock, TrendingUp,
-  Shield, AlertTriangle, CheckCircle, DollarSign, Calendar, Lock
+  Shield, AlertTriangle, CheckCircle, DollarSign, Calendar, Lock, MapPin, Navigation
 } from 'lucide-react';
 
 const API_URL = getFrontendApiUrl();
@@ -38,6 +38,15 @@ const buildLocalProjection = (plan, amount) => {
     },
     total_at_end: principal + earnings,
   };
+};
+
+const EV_PROJECT = {
+  projectCode: 'ZIPL_AIDCT67_2G_01',
+  siteName: 'Sapna Cinema',
+  address: 'D Block, East of Kailash, New Delhi, Delhi 110048',
+  city: 'New Delhi',
+  state: 'Delhi',
+  navigationUrl: 'https://maps.app.goo.gl/J2x3aiXyB2DAQtNc8?g_st=aw',
 };
 
 const SegmentDetailPage = () => {
@@ -230,6 +239,8 @@ const SegmentDetailPage = () => {
     return values[risk] || 50;
   };
 
+  const showProjectsTab = segmentId === 'ev-charging';
+
   if (loading) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
@@ -298,6 +309,9 @@ const SegmentDetailPage = () => {
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
                 <TabsTrigger value="plans" data-testid="tab-plans">Investment Plans</TabsTrigger>
+                {showProjectsTab && (
+                  <TabsTrigger value="projects" data-testid="tab-projects">Our Projects</TabsTrigger>
+                )}
                 <TabsTrigger value="sustainability" data-testid="tab-sustainability">Sustainability</TabsTrigger>
               </TabsList>
 
@@ -405,6 +419,51 @@ const SegmentDetailPage = () => {
                   ))}
                 </div>
               </TabsContent>
+
+              {showProjectsTab && (
+                <TabsContent value="projects" className="mt-6">
+                  <Card>
+                    <CardContent className="p-6 md:p-8">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-primary/80">Our Projects</p>
+                          <h3 className="text-2xl md:text-3xl font-semibold font-['Outfit'] mt-3">
+                            {EV_PROJECT.siteName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-2">{EV_PROJECT.projectCode}</p>
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400">
+                          <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                          LIVE
+                        </div>
+                      </div>
+
+                      <div className="mt-6 rounded-2xl border border-border bg-muted/40 px-4 py-4">
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                          <p className="text-sm md:text-base text-foreground/90">{EV_PROJECT.address}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-2xl border border-border bg-muted/30 p-5">
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary/80">Location</p>
+                        <p className="mt-3 text-2xl font-semibold font-['Outfit'] uppercase">{EV_PROJECT.city}</p>
+                        <p className="text-sm text-muted-foreground mt-1 uppercase">{EV_PROJECT.state}</p>
+                      </div>
+
+                      <Button
+                        asChild
+                        className="w-full mt-8 rounded-2xl py-6 text-lg font-semibold"
+                      >
+                        <a href={EV_PROJECT.navigationUrl} target="_blank" rel="noreferrer">
+                          <Navigation className="mr-2 h-5 w-5" />
+                          Navigate Now
+                        </a>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
 
               <TabsContent value="sustainability" className="mt-6">
                 <Card>
