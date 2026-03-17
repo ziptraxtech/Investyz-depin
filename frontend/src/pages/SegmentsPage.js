@@ -4,66 +4,11 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Server, Battery, Zap, Sun, Leaf, Search, TrendingUp, Users, ArrowRight } from 'lucide-react';
+import { getFrontendApiUrl } from '../lib/apiConfig';
+import { FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
-
-const FALLBACK_SEGMENTS = [
-  {
-    segment_id: 'battery-storage',
-    name: 'Battery Energy Storage',
-    description: 'Support grid-scale battery storage systems that store renewable energy and stabilize power grids.',
-    short_description: 'Store energy, power futures',
-    image_url: 'https://images.unsplash.com/photo-1715605569694-4cc47c9fb535?crop=entropy&cs=srgb&fm=jpg&q=85',
-    icon: 'Battery',
-    features: ['Grid Stabilization', 'Peak Shaving', 'Frequency Regulation'],
-    total_tvl: 32000000,
-    investors_count: 1923,
-  },
-  {
-    segment_id: 'ev-charging',
-    name: 'EV Fast Charging',
-    description: 'Accelerate the electric vehicle revolution by investing in fast-charging infrastructure.',
-    short_description: 'Charge the future',
-    image_url: 'https://images.unsplash.com/photo-1765272088009-100c96a4cd4e?crop=entropy&cs=srgb&fm=jpg&q=85',
-    icon: 'Zap',
-    features: ['350kW Ultra-Fast', 'Strategic Locations', '24/7 Availability'],
-    total_tvl: 28000000,
-    investors_count: 3421,
-  },
-  {
-    segment_id: 'data-centers',
-    name: 'Data Centers',
-    description: 'Invest in sustainable, energy-efficient data centers powering the digital economy.',
-    short_description: 'Power the cloud sustainably',
-    image_url: 'https://images.unsplash.com/photo-1733187633171-3b1c0c6ce708?crop=entropy&cs=srgb&fm=jpg&q=85',
-    icon: 'Server',
-    features: ['100% Renewable Energy', 'PUE < 1.2', 'Tier 4 Certified'],
-    total_tvl: 45000000,
-    investors_count: 2847,
-  },
-  {
-    segment_id: 'renewable-energy',
-    name: 'Renewable Energy Plants',
-    description: 'Invest directly in solar farms, wind parks, and hydroelectric facilities.',
-    short_description: "Harvest nature's power",
-    image_url: 'https://images.unsplash.com/photo-1755585129999-7b29cf3baebe?crop=entropy&cs=srgb&fm=jpg&q=85',
-    icon: 'Sun',
-    features: ['20+ Year PPAs', 'Carbon Neutral', 'Diversified Portfolio'],
-    total_tvl: 67000000,
-    investors_count: 4156,
-  },
-  {
-    segment_id: 'green-credits',
-    name: 'Green Credit Projects',
-    description: 'Participate in carbon credit and environmental offset projects.',
-    short_description: 'Offset, earn, impact',
-    image_url: 'https://images.unsplash.com/photo-1683444595829-e74e68fcce22?crop=entropy&cs=srgb&fm=jpg&q=85',
-    icon: 'Leaf',
-    features: ['Verified Credits', 'Biodiversity Projects', 'Transparent Tracking'],
-    total_tvl: 18000000,
-    investors_count: 1287,
-  },
-];
+const API_URL = getFrontendApiUrl();
+const SEGMENTS_CACHE_KEY = 'segments_cache_v2';
 
 const normalizeSegmentsPayload = (result) => {
   const data = result?.data || result;
@@ -92,46 +37,6 @@ const sortSegmentsForDisplay = (list) =>
     return String(a.name || '').localeCompare(String(b.name || ''));
   });
 
-// Mock data for when backend is not available
-const mockSegments = [
-  {
-    id: 'renewable-energy',
-    name: 'Renewable Energy',
-    slug: 'renewable-energy',
-    description: 'Invest in solar and wind energy infrastructure projects',
-    icon: 'Sun',
-    total_tvl: 2500000,
-    investors_count: 1250,
-    apy_range: { min: 8, max: 15 },
-    risk_level: 'Low',
-    min_investment: 100
-  },
-  {
-    id: 'data-centers',
-    name: 'Data Centers',
-    slug: 'data-centers',
-    description: 'Green data center infrastructure investments',
-    icon: 'Server',
-    total_tvl: 3200000,
-    investors_count: 890,
-    apy_range: { min: 10, max: 18 },
-    risk_level: 'Medium',
-    min_investment: 500
-  },
-  {
-    id: 'ev-charging',
-    name: 'EV Charging',
-    slug: 'ev-charging',
-    description: 'Electric vehicle charging station networks',
-    icon: 'Zap',
-    total_tvl: 1800000,
-    investors_count: 650,
-    apy_range: { min: 12, max: 20 },
-    risk_level: 'Medium',
-    min_investment: 250
-  }
-];
-
 const SegmentsPage = () => {
   const [segments, setSegments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -142,6 +47,13 @@ const SegmentsPage = () => {
     const fetchSegments = async () => {
       setLoading(true);
       setFetchError('');
+      localStorage.removeItem('segments_cache_v1');
+
+      if (!API_URL) {
+        setSegments(sortSegmentsForDisplay(FALLBACK_SEGMENTS));
+        setLoading(false);
+        return;
+      }
 
       try {
         const endpoint = `${API_URL}/api/segments`;
@@ -164,13 +76,13 @@ const SegmentsPage = () => {
         if (loadedSegments.length > 0) {
           const sortedSegments = sortSegmentsForDisplay(loadedSegments);
           setSegments(sortedSegments);
-          localStorage.setItem('segments_cache_v1', JSON.stringify(sortedSegments));
+          localStorage.setItem(SEGMENTS_CACHE_KEY, JSON.stringify(sortedSegments));
         } else {
           throw new Error('Empty segments response');
         }
       } catch (error) {
         console.error('Failed to fetch segments:', error);
-        const cachedSegments = localStorage.getItem('segments_cache_v1');
+        const cachedSegments = localStorage.getItem(SEGMENTS_CACHE_KEY);
         if (cachedSegments) {
           try {
             const parsed = JSON.parse(cachedSegments);

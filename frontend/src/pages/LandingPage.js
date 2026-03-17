@@ -4,6 +4,8 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../context/AuthContext';
+import { getFrontendApiUrl } from '../lib/apiConfig';
+import { FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   ArrowRight,
   Wallet,
@@ -30,7 +32,7 @@ import {
   Route,
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = getFrontendApiUrl();
 const LANDING_SEGMENT_PRIORITY = {
   'battery-storage': 1,
   'ev-charging': 2,
@@ -38,40 +40,6 @@ const LANDING_SEGMENT_PRIORITY = {
   'renewable-energy': 4,
   'green-credits': 5,
 };
-
-// Mock segments for when backend is not available
-const mockSegments = [
-  {
-    id: 'renewable-energy',
-    name: 'Renewable Energy',
-    slug: 'renewable-energy',
-    description: 'Solar and wind energy projects',
-    icon: 'Sun',
-    total_tvl: 2500000,
-    investors_count: 1250,
-    apy_range: { min: 8, max: 15 }
-  },
-  {
-    id: 'data-centers',
-    name: 'Data Centers',
-    slug: 'data-centers',
-    description: 'Green data infrastructure',
-    icon: 'Server',
-    total_tvl: 3200000,
-    investors_count: 890,
-    apy_range: { min: 10, max: 18 }
-  },
-  {
-    id: 'ev-charging',
-    name: 'EV Charging',
-    slug: 'ev-charging',
-    description: 'Electric vehicle networks',
-    icon: 'Zap',
-    total_tvl: 1800000,
-    investors_count: 650,
-    apy_range: { min: 12, max: 20 }
-  }
-];
 
 const LandingPage = () => {
   const { user, login } = useAuth();
@@ -84,7 +52,7 @@ const LandingPage = () => {
     const fetchSegments = async () => {
       // If no backend, use mock data
       if (!API_URL || API_URL === '') {
-        setSegments(mockSegments);
+        setSegments(FALLBACK_SEGMENTS);
         return;
       }
       
@@ -94,12 +62,12 @@ const LandingPage = () => {
           const result = await response.json();
           // Handle both formats: direct array or {success, data} wrapper
           const data = result.data || result;
-          setSegments(Array.isArray(data) ? data : mockSegments);
+          setSegments(Array.isArray(data) ? data : FALLBACK_SEGMENTS);
         }
       } catch (error) {
         console.error('Failed to fetch segments:', error);
         // Fallback to mock data on error
-        setSegments(mockSegments);
+        setSegments(FALLBACK_SEGMENTS);
       }
     };
     fetchSegments();
@@ -258,7 +226,7 @@ const LandingPage = () => {
   const agenticAIUseCases = [
     {
       icon: PlugZap,
-      title: 'EV Charging Infra',
+      title: 'EV DC Fast Charging',
       subtitle: 'Autonomous Maintenance Engines',
       description: 'If a charger fails a handshake with a vehicle, the agent initiates a remote self-reboot, updates its status on ZeFlash.App to "Maintenance," and reroutes incoming drivers to the nearest functional stall.',
       result: '99% uptime for CPOs',

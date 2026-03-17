@@ -13,7 +13,7 @@ const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 const AuthPage = ({ mode = 'login' }) => {
   const isSignup = mode === 'signup';
   const navigate = useNavigate();
-  const { loginWithEmail, signupWithEmail, loginWithGoogle, startExternalGoogleAuth } = useAuth();
+  const { loginWithEmail, signupWithEmail, loginWithGoogle } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
   const googleButtonRef = useRef(null);
@@ -131,6 +131,10 @@ const AuthPage = ({ mode = 'login' }) => {
     }
   };
 
+  const handleGoogleUnavailable = () => {
+    toast.error('Google Sign-In is not configured yet.');
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-10 px-4 bg-[#031117]">
       <div className="max-w-6xl mx-auto rounded-3xl overflow-hidden border border-teal-900/40 bg-[#041922] shadow-2xl">
@@ -163,12 +167,12 @@ const AuthPage = ({ mode = 'login' }) => {
                     type="button"
                     variant="outline"
                     className="w-full h-11 rounded-full border-teal-800/70 bg-[#04202a] text-white hover:bg-[#06303d]"
-                    onClick={startExternalGoogleAuth}
+                    onClick={handleGoogleUnavailable}
                   >
                     Continue with Google
                   </Button>
                   <p className="text-center text-xs text-teal-100/70">
-                    Using secure Google auth flow.
+                    Google Sign-In is temporarily unavailable.
                   </p>
                 </div>
               )}
