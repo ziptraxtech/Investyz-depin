@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { CheckCircle, XCircle, Loader2, ArrowRight } from 'lucide-react';
+import { getFrontendApiUrl } from '../lib/apiConfig';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = getFrontendApiUrl();
 
 export const PaymentSuccess = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export const PaymentSuccess = () => {
     // If no backend, show demo message
     if (!API_URL || API_URL === '') {
       setStatus('success');
-      setPaymentData({ amount: 1000, segment_name: 'Demo Investment' });
+      setPaymentData({ amount_total: 100000, segment_name: 'Demo Investment' });
       return;
     }
 

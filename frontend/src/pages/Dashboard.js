@@ -6,12 +6,13 @@ import { Progress } from '../components/ui/progress';
 import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
 import WalletModal from '../components/WalletModal';
+import { getFrontendApiUrl } from '../lib/apiConfig';
 import {
   TrendingUp, DollarSign, Leaf, Zap, PiggyBank, ArrowUpRight,
   Clock, Wallet, ChevronRight, Sun, Battery, Server
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = getFrontendApiUrl();
 
 // Mock data for when backend is not available
 const mockStats = {
@@ -35,7 +36,7 @@ const mockInvestments = [
   },
   {
     id: 2,
-    segment_name: 'EV Charging',
+    segment_name: 'EV DC Fast Charging',
     segment_id: 'ev-charging',
     amount: 2000,
     current_value: 2100,

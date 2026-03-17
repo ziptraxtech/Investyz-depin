@@ -1,7 +1,8 @@
 ﻿import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getFrontendApiUrl } from '../lib/apiConfig';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const API_URL = getFrontendApiUrl();
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
@@ -30,6 +31,12 @@ export const AuthProvider = ({ children }) => {
   }, [getResponseData]);
 
   const checkAuth = useCallback(async () => {
+    if (!API_URL) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
         credentials: 'include',
@@ -60,24 +67,16 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
-  const getExternalAuthRedirectOrigin = () => {
-    const configuredOrigin = process.env.REACT_APP_AUTH_REDIRECT_ORIGIN?.trim();
-    if (configuredOrigin) {
-      return configuredOrigin.replace(/\/+$/, '');
-    }
-
-    const { protocol, hostname, port } = window.location;
-    // Use canonical apex domain in production so Emergent doesn't display "Www".
-    const resolvedHost = hostname.toLowerCase() === 'www.investyz.com' ? 'investyz.com' : hostname;
-    return `${protocol}//${resolvedHost}${port ? `:${port}` : ''}`;
-  };
-
   const startExternalGoogleAuth = () => {
-    const redirectUrl = `${getExternalAuthRedirectOrigin()}/auth/callback`;
+    const redirectUrl = `${window.location.origin}/auth/callback`;
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   const signupWithEmail = async ({ name, email, password }) => {
+    if (!API_URL) {
+      throw new Error('Authentication is temporarily unavailable.');
+    }
+
     const response = await fetch(`${API_URL}/api/auth/signup`, {
       method: 'POST',
       credentials: 'include',
@@ -94,6 +93,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithEmail = async ({ email, password }) => {
+    if (!API_URL) {
+      throw new Error('Authentication is temporarily unavailable.');
+    }
+
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       credentials: 'include',
@@ -110,6 +113,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithGoogle = async (idToken) => {
+    if (!API_URL) {
+      throw new Error('Google login is temporarily unavailable.');
+    }
+
     const response = await fetch(`${API_URL}/api/auth/google`, {
       method: 'POST',
       credentials: 'include',
@@ -126,6 +133,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    if (!API_URL) {
+      setUser(null);
+      navigate('/');
+      return;
+    }
+
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',
@@ -183,6 +196,12 @@ export const AuthCallback = () => {
       const sessionId = params.get('session_id');
 
       if (!sessionId) {
+        navigate('/');
+        return;
+      }
+
+      if (!API_URL) {
+        console.error('Auth callback failed: backend unavailable');
         navigate('/');
         return;
       }

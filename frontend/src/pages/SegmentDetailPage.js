@@ -8,68 +8,37 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import { getFrontendApiUrl } from '../lib/apiConfig';
+import { FALLBACK_PLANS, FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   Server, Battery, Zap, Sun, Leaf, ArrowLeft, Clock, TrendingUp,
   Shield, AlertTriangle, CheckCircle, DollarSign, Calendar, Lock
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = getFrontendApiUrl();
 
-// Mock data for segments and plans
-const mockSegmentsData = {
-  'renewable-energy': {
-    id: 'renewable-energy',
-    name: 'Renewable Energy',
-    slug: 'renewable-energy',
-    description: 'Invest in solar and wind energy infrastructure projects',
-    icon: 'Sun',
-    total_tvl: 2500000,
-    investors_count: 1250,
-    apy_range: { min: 8, max: 15 },
-    risk_level: 'Low'
-  },
-  'data-centers': {
-    id: 'data-centers',
-    name: 'Data Centers',
-    slug: 'data-centers',
-    description: 'Green data center infrastructure investments',
-    icon: 'Server',
-    total_tvl: 3200000,
-    investors_count: 890,
-    apy_range: { min: 10, max: 18 },
-    risk_level: 'Medium'
-  },
-  'ev-charging': {
-    id: 'ev-charging',
-    name: 'EV Charging',
-    slug: 'ev-charging',
-    description: 'Electric vehicle charging station networks',
-    icon: 'Zap',
-    total_tvl: 1800000,
-    investors_count: 650,
-    apy_range: { min: 12, max: 20 },
-    risk_level: 'Medium'
-  }
+const getFallbackSegment = (segmentId) =>
+  FALLBACK_SEGMENTS.find((segment) => segment.segment_id === segmentId || segment.id === segmentId);
+
+const getFallbackPlans = (segmentId) =>
+  FALLBACK_PLANS.filter((plan) => plan.segment_id === segmentId);
+
+const buildLocalProjection = (plan, amount) => {
+  const principal = Number(amount || 0);
+  const apyDecimal = Number(plan?.apy || 0) / 100;
+  const lockDays = Number(plan?.lock_period_days || 30);
+  const earnings = principal * apyDecimal * (lockDays / 365);
+  const monthly = lockDays > 0 ? earnings / Math.max(lockDays / 30, 1) : 0;
+
+  return {
+    projected_returns: {
+      daily: lockDays > 0 ? earnings / lockDays : 0,
+      monthly,
+      lock_period: earnings,
+    },
+    total_at_end: principal + earnings,
+  };
 };
-
-const mockPlans = [
-  {
-    plan_id: 1,
-    name: 'Basic Plan',
-    duration_months: 12,
-    apy: 12,
-    min_investment: 100,
-    max_investment: 10000
-  },
-  {
-    plan_id: 2,
-    name: 'Premium Plan',
-    duration_months: 24,
-    apy: 15,
-    min_investment: 500,
-    max_investment: 50000
-  }
-];
 
 const SegmentDetailPage = () => {
   const { segmentId } = useParams();
@@ -89,12 +58,15 @@ const SegmentDetailPage = () => {
       try {
         // If no backend, use mock data
         if (!API_URL || API_URL === '') {
-          const mockSegment = mockSegmentsData[segmentId];
+          const mockSegment = getFallbackSegment(segmentId);
+          const mockPlans = getFallbackPlans(segmentId);
           if (mockSegment) {
             setSegment(mockSegment);
             setPlans(mockPlans);
-            setSelectedPlan(mockPlans[0]);
-            setInvestmentAmount(mockPlans[0].min_investment);
+            if (mockPlans.length > 0) {
+              setSelectedPlan(mockPlans[0]);
+              setInvestmentAmount(mockPlans[0].min_investment);
+            }
           }
           setLoading(false);
           return;
@@ -111,7 +83,7 @@ const SegmentDetailPage = () => {
           setSegment(segmentData);
         } else {
           // Fallback to mock
-          const mockSegment = mockSegmentsData[segmentId];
+          const mockSegment = getFallbackSegment(segmentId);
           if (mockSegment) setSegment(mockSegment);
         }
 
@@ -119,26 +91,33 @@ const SegmentDetailPage = () => {
           const plansResult = await plansRes.json();
           const plansData = plansResult.data || plansResult;
           const plans = Array.isArray(plansData) ? plansData : [];
-          setPlans(plans);
-          if (plans.length > 0) {
-            setSelectedPlan(plans[0]);
-            setInvestmentAmount(plans[0].min_investment);
+          const resolvedPlans = plans.length > 0 ? plans : getFallbackPlans(segmentId);
+          setPlans(resolvedPlans);
+          if (resolvedPlans.length > 0) {
+            setSelectedPlan(resolvedPlans[0]);
+            setInvestmentAmount(resolvedPlans[0].min_investment);
           }
         } else {
           // Fallback to mock
-          setPlans(mockPlans);
-          setSelectedPlan(mockPlans[0]);
-          setInvestmentAmount(mockPlans[0].min_investment);
+          const fallbackPlans = getFallbackPlans(segmentId);
+          setPlans(fallbackPlans);
+          if (fallbackPlans.length > 0) {
+            setSelectedPlan(fallbackPlans[0]);
+            setInvestmentAmount(fallbackPlans[0].min_investment);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
         // Fallback to mock data
-        const mockSegment = mockSegmentsData[segmentId];
+        const mockSegment = getFallbackSegment(segmentId);
+        const mockPlans = getFallbackPlans(segmentId);
         if (mockSegment) {
           setSegment(mockSegment);
           setPlans(mockPlans);
-          setSelectedPlan(mockPlans[0]);
-          setInvestmentAmount(mockPlans[0].min_investment);
+          if (mockPlans.length > 0) {
+            setSelectedPlan(mockPlans[0]);
+            setInvestmentAmount(mockPlans[0].min_investment);
+          }
         }
       } finally {
         setLoading(false);
@@ -154,14 +133,7 @@ const SegmentDetailPage = () => {
 
       // If no backend, calculate locally
       if (!API_URL || API_URL === '') {
-        const apy = selectedPlan.apy / 100;
-        const total = investmentAmount * (1 + apy);
-        const earnings = total - investmentAmount;
-        setProjectedReturns({
-          total_return: total,
-          net_earnings: earnings,
-          monthly_payout: earnings / selectedPlan.duration_months
-        });
+        setProjectedReturns(buildLocalProjection(selectedPlan, investmentAmount));
         return;
       }
 
@@ -181,26 +153,12 @@ const SegmentDetailPage = () => {
           setProjectedReturns(data);
         } else {
           // Fallback calculation
-          const apy = selectedPlan.apy / 100;
-          const total = investmentAmount * (1 + apy);
-          const earnings = total - investmentAmount;
-          setProjectedReturns({
-            total_return: total,
-            net_earnings: earnings,
-            monthly_payout: earnings / selectedPlan.duration_months
-          });
+          setProjectedReturns(buildLocalProjection(selectedPlan, investmentAmount));
         }
       } catch (error) {
         console.error('Failed to calculate returns:', error);
         // Fallback calculation
-        const apy = selectedPlan.apy / 100;
-        const total = investmentAmount * (1 + apy);
-        const earnings = total - investmentAmount;
-        setProjectedReturns({
-          total_return: total,
-          net_earnings: earnings,
-          monthly_payout: earnings / selectedPlan.duration_months
-        });
+        setProjectedReturns(buildLocalProjection(selectedPlan, investmentAmount));
       }
     };
 
@@ -294,8 +252,8 @@ const SegmentDetailPage = () => {
   return (
     <div className="min-h-screen pt-20 pb-16">
       {/* Hero */}
-      <section className="relative">
-        <div className="absolute inset-0 h-[400px] pointer-events-none">
+      <section className="relative isolate overflow-hidden min-h-[360px] md:min-h-[420px]">
+        <div className="absolute inset-0 h-full pointer-events-none">
           <img
             src={segment.image_url}
             alt={segment.name}
@@ -304,7 +262,7 @@ const SegmentDetailPage = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 md:pb-14 min-h-[360px] md:min-h-[420px] flex flex-col">
           <Button
             variant="ghost"
             className="mb-6 gap-2"
@@ -315,7 +273,7 @@ const SegmentDetailPage = () => {
             Back to Segments
           </Button>
 
-          <div className="flex items-start gap-4 mb-8">
+          <div className="flex items-start gap-4 mt-auto">
             <div className="p-4 rounded-2xl bg-primary/20 backdrop-blur-sm text-primary">
               {getIcon(segment.icon)}
             </div>
@@ -351,7 +309,7 @@ const SegmentDetailPage = () => {
 
                     <h4 className="font-semibold mb-3">Key Features</h4>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      {segment.features.map((feature, idx) => (
+                      {(segment.features || []).map((feature, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
                           <span className="text-sm">{feature}</span>
@@ -423,7 +381,7 @@ const SegmentDetailPage = () => {
                             </div>
                             <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
                             <div className="flex flex-wrap gap-2">
-                              {plan.features.map((feature, idx) => (
+                              {(plan.features || []).map((feature, idx) => (
                                 <span key={idx} className="text-xs px-2 py-1 rounded bg-muted">
                                   {feature}
                                 </span>
