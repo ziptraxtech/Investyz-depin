@@ -1,6 +1,11 @@
 import React, { useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { SignIn, SignUp, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { Card, CardContent } from '../components/ui/card';
+
+const CLERK_PUBLISHABLE_KEY =
+  process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const CLERK_ENABLED = Boolean(CLERK_PUBLISHABLE_KEY);
 
 const clerkAppearance = {
   elements: {
@@ -35,6 +40,26 @@ const AuthPage = ({ mode = 'login' }) => {
 
   return (
     <>
+      {!CLERK_ENABLED && (
+        <div className="min-h-screen pt-24 pb-10 px-4 bg-gradient-to-br from-[#dceceb] via-[#ebf5f4] to-[#d8ebef] dark:from-[#031117] dark:via-[#04131b] dark:to-[#031117]">
+          <div className="max-w-3xl mx-auto">
+            <Card className="border-border/60 bg-card/95">
+              <CardContent className="p-8 md:p-10">
+                <h1 className="text-3xl md:text-4xl font-semibold font-['Outfit'] mb-4">
+                  Sign in is temporarily unavailable
+                </h1>
+                <p className="text-muted-foreground leading-relaxed">
+                  Authentication is not configured for this deployment yet. The rest of the site
+                  remains available, and sign in will work once the Clerk environment variables are
+                  added to the hosting project.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+      {CLERK_ENABLED && (
+        <>
       <SignedIn>
         <Navigate to="/dashboard" replace />
       </SignedIn>
@@ -81,6 +106,8 @@ const AuthPage = ({ mode = 'login' }) => {
           </div>
         </div>
       </SignedOut>
+        </>
+      )}
     </>
   );
 };

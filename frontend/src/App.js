@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { ClerkProvider } from '@clerk/clerk-react';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { useUser } from '@clerk/clerk-react';
 import { WalletProvider } from './context/WalletContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -29,14 +28,14 @@ const PaymentCancel = lazy(() =>
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const CLERK_ENABLED = Boolean(CLERK_PUBLISHABLE_KEY);
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  const { isLoaded, isSignedIn } = useUser();
+  const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (loading || !isLoaded) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center hero-gradient">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -49,7 +48,7 @@ const ProtectedRoute = ({ children }) => {
     return children;
   }
 
-  if (!isSignedIn || !user) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/" replace />;
   }
 
@@ -118,10 +117,6 @@ const AppRouter = () => {
 const ClerkRouterProvider = ({ children }) => {
   const navigate = useNavigate();
 
-  if (!CLERK_PUBLISHABLE_KEY) {
-    throw new Error('Add your Clerk publishable key to the frontend environment.');
-  }
-
   const navigateWithClerk = (to, replace = false) => {
     if (!to) return;
 
@@ -138,6 +133,10 @@ const ClerkRouterProvider = ({ children }) => {
       navigate(to, { replace });
     }
   };
+
+  if (!CLERK_ENABLED) {
+    return children;
+  }
 
   return (
     <ClerkProvider
