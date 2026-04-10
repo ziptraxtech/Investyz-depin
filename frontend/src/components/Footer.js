@@ -10,20 +10,17 @@ const Footer = () => {
     product: [
       { name: 'Segments', href: '/segments' },
       { name: 'Investment Plans', href: '/segments' },
-      { name: 'Calculator', href: '/segments/renewable-energy' },
       { name: 'Dashboard', href: '/dashboard' },
     ],
     company: [
-      { name: 'About Us', href: '/#about' },
+      { name: 'About Us', href: '/about' },
       { name: 'How It Works', href: '/#how-it-works' },
-      { name: 'Blog', href: '#' },
-      { name: 'Careers', href: '#' },
+      { name: 'Blog', href: '/blog' },
     ],
     legal: [
-      { name: 'Privacy Policy', href: '#' },
-      { name: 'Terms of Service', href: '#' },
-      { name: 'Cookie Policy', href: '#' },
-      { name: 'Risk Disclaimer', href: '#' },
+      { name: 'Privacy Policy', href: '/privacy-policy', external: true },
+      { name: 'Terms of Service', href: '/terms-of-service', external: true },
+      { name: 'Risk Disclaimer', href: '/risk-disclaimer', external: true },
     ],
   };
 
@@ -95,12 +92,23 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.name}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.href}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

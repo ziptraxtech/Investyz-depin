@@ -9,6 +9,7 @@ import { Progress } from '../components/ui/progress';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { getFrontendApiUrl } from '../lib/apiConfig';
+import { isSegmentFuture, isSegmentHidden } from '../lib/segmentVisibility';
 import { FALLBACK_PLANS, FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   Server, Battery, Zap, Sun, Leaf, ArrowLeft, Clock, TrendingUp,
@@ -64,6 +65,22 @@ const SegmentDetailPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (isSegmentHidden(segmentId)) {
+        setSegment(null);
+        setPlans([]);
+        setSelectedPlan(null);
+        setLoading(false);
+        return;
+      }
+
+      if (isSegmentFuture(segmentId)) {
+        setSegment(getFallbackSegment(segmentId));
+        setPlans([]);
+        setSelectedPlan(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         // If no backend, use mock data
         if (!API_URL || API_URL === '') {
@@ -253,9 +270,100 @@ const SegmentDetailPage = () => {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Segment not found</h2>
+          <h2 className="text-2xl font-bold mb-4">
+            {isSegmentHidden(segmentId) ? 'This segment is not live yet' : 'Segment not found'}
+          </h2>
+          {isSegmentHidden(segmentId) && (
+            <p className="text-muted-foreground mb-4">
+              We are keeping this segment in reserve for a future launch.
+            </p>
+          )}
           <Button onClick={() => navigate('/segments')}>Back to Segments</Button>
         </div>
+      </div>
+    );
+  }
+
+  if (isSegmentFuture(segmentId)) {
+    return (
+      <div className="min-h-screen pt-20 pb-16">
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+          <Button
+            variant="ghost"
+            className="mb-6 gap-2"
+            onClick={() => navigate('/segments')}
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Segments
+          </Button>
+
+          <Card className="overflow-hidden border-amber-200/80 bg-card/95">
+            <div className="relative h-72 md:h-96">
+              <img
+                src={segment.image_url}
+                alt={segment.name}
+                className="h-full w-full object-cover saturate-[0.82]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
+              <div className="absolute left-6 top-6 inline-flex items-center rounded-full border border-amber-200/70 bg-amber-100/95 px-4 py-2 text-sm font-semibold text-amber-950">
+                Launching Next
+              </div>
+            </div>
+
+            <CardContent className="p-6 md:p-10">
+              <div className="flex items-start gap-4">
+                <div className="p-4 rounded-2xl bg-primary/10 text-primary">
+                  {getIcon(segment.icon)}
+                </div>
+                <div>
+                  <h1 className="text-3xl md:text-5xl font-semibold font-['Outfit']">{segment.name}</h1>
+                  <p className="text-lg text-muted-foreground mt-4 max-w-3xl">
+                    This segment is already preserved in the codebase and product roadmap, and will be switched on when we expand beyond the currently live infrastructure categories.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 mt-10">
+                <div className="rounded-2xl border border-border bg-muted/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Status</p>
+                  <p className="mt-3 text-xl font-semibold text-amber-700 dark:text-amber-300">Not Live Yet</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-muted/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Readiness</p>
+                  <p className="mt-3 text-xl font-semibold">Saved for future activation</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-muted/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Current Access</p>
+                  <p className="mt-3 text-xl font-semibold">Preview only</p>
+                </div>
+              </div>
+
+              <div className="mt-10">
+                <h2 className="text-xl font-semibold font-['Outfit'] mb-4">Planned Highlights</h2>
+                <div className="flex flex-wrap gap-3">
+                  {segment.features.map((feature) => (
+                    <span
+                      key={feature}
+                      className="rounded-full border border-amber-300/50 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-10 flex flex-col sm:flex-row gap-4">
+                <Button onClick={() => navigate('/segments')} className="rounded-full px-8">
+                  Explore Live Segments
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/about')} className="rounded-full px-8">
+                  View Our Roadmap Story
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     );
   }

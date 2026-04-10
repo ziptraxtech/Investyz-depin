@@ -1,9 +1,15 @@
-﻿import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { getFrontendApiUrl } from '../lib/apiConfig';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useClerk, useUser } from '@clerk/clerk-react';
 
-const API_URL = getFrontendApiUrl();
 const AuthContext = createContext(null);
+
+const buildDisplayName = (clerkUser) => {
+  if (!clerkUser) return '';
+  if (clerkUser.fullName) return clerkUser.fullName;
+  const combinedName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ').trim();
+  return combinedName || clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress || '';
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -14,148 +20,47 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isLoaded, user: clerkUser } = useUser();
+  const clerk = useClerk();
+  const [walletProfile, setWalletProfile] = useState(null);
 
-  const getResponseData = useCallback((payload) => payload?.data ?? payload, []);
+  const user = useMemo(() => {
+    if (!clerkUser) return null;
 
-  const saveAuthenticatedUser = useCallback((payload) => {
-    const data = getResponseData(payload);
-    const authenticatedUser = data?.user ?? data;
-    if (authenticatedUser?.email) {
-      setUser(authenticatedUser);
-      return authenticatedUser;
-    }
-    return null;
-  }, [getResponseData]);
-
-  const checkAuth = useCallback(async () => {
-    if (!API_URL) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/api/auth/me`, {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const payload = await response.json();
-        const authenticatedUser = saveAuthenticatedUser(payload);
-        if (!authenticatedUser) {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [saveAuthenticatedUser]);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    return {
+      user_id: clerkUser.id,
+      id: clerkUser.id,
+      name: buildDisplayName(clerkUser),
+      email: clerkUser.primaryEmailAddress?.emailAddress || '',
+      picture: clerkUser.imageUrl || '',
+      auth_provider: 'clerk',
+      wallet_address: walletProfile?.wallet_address || '',
+      wallet_type: walletProfile?.wallet_type || '',
+      wallet_chain_id: walletProfile?.wallet_chain_id || '',
+    };
+  }, [clerkUser, walletProfile]);
 
   const login = () => {
     navigate('/login');
   };
 
-  const startExternalGoogleAuth = () => {
-    const redirectUrl = `${window.location.origin}/auth/callback`;
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
-
-  const signupWithEmail = async ({ name, email, password }) => {
-    if (!API_URL) {
-      throw new Error('Authentication is temporarily unavailable.');
-    }
-
-    const response = await fetch(`${API_URL}/api/auth/signup`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    const payload = await response.json();
-    if (!response.ok || !payload?.success) {
-      throw new Error(payload?.message || 'Signup failed');
-    }
-
-    return saveAuthenticatedUser(payload);
-  };
-
-  const loginWithEmail = async ({ email, password }) => {
-    if (!API_URL) {
-      throw new Error('Authentication is temporarily unavailable.');
-    }
-
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const payload = await response.json();
-    if (!response.ok || !payload?.success) {
-      throw new Error(payload?.message || 'Login failed');
-    }
-
-    return saveAuthenticatedUser(payload);
-  };
-
-  const loginWithGoogle = async (idToken) => {
-    if (!API_URL) {
-      throw new Error('Google login is temporarily unavailable.');
-    }
-
-    const response = await fetch(`${API_URL}/api/auth/google`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_token: idToken }),
-    });
-
-    const payload = await response.json();
-    if (!response.ok || !payload?.success) {
-      throw new Error(payload?.message || 'Google login failed');
-    }
-
-    return saveAuthenticatedUser(payload);
+  const signup = () => {
+    navigate('/signup');
   };
 
   const logout = async () => {
-    if (!API_URL) {
-      setUser(null);
-      navigate('/');
-      return;
-    }
-
-    try {
-      await fetch(`${API_URL}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-
-    setUser(null);
+    await clerk.signOut();
+    setWalletProfile(null);
     navigate('/');
   };
 
-  const connectWallet = (walletAddress, walletType = 'metamask') => {
-    if (user) {
-      setUser({ ...user, wallet_address: walletAddress, wallet_type: walletType });
-    }
+  const connectWallet = (walletAddress, walletType = 'metamask', walletChainId = '137') => {
+    setWalletProfile({
+      wallet_address: walletAddress,
+      wallet_type: walletType,
+      wallet_chain_id: walletChainId,
+    });
     return true;
   };
 
@@ -163,15 +68,16 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        setUser,
-        loading,
+        setUser: () => {},
+        loading: !isLoaded,
         login,
-        startExternalGoogleAuth,
-        signupWithEmail,
-        loginWithEmail,
-        loginWithGoogle,
+        signup,
+        startExternalGoogleAuth: login,
+        signupWithEmail: signup,
+        loginWithEmail: login,
+        loginWithGoogle: login,
         logout,
-        checkAuth,
+        checkAuth: async () => user,
         connectWallet,
       }}
     >
@@ -180,67 +86,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const AuthCallback = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { setUser } = useAuth();
-  const hasProcessed = useRef(false);
-
-  useEffect(() => {
-    if (hasProcessed.current) return;
-    hasProcessed.current = true;
-
-    const processAuth = async () => {
-      const hash = location.hash;
-      const params = new URLSearchParams(hash.replace('#', ''));
-      const sessionId = params.get('session_id');
-
-      if (!sessionId) {
-        navigate('/');
-        return;
-      }
-
-      if (!API_URL) {
-        console.error('Auth callback failed: backend unavailable');
-        navigate('/');
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/api/auth/session`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId }),
-        });
-
-        if (response.ok) {
-          const payload = await response.json();
-          const data = payload?.data || payload;
-          const authenticatedUser = data?.user || data;
-          setUser(authenticatedUser);
-          navigate('/dashboard', { state: { user: authenticatedUser } });
-        } else {
-          console.error('Auth failed');
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        navigate('/');
-      }
-    };
-
-    processAuth();
-  }, [location, navigate, setUser]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center hero-gradient">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">Redirecting...</p>
-      </div>
-    </div>
-  );
-};
+export const AuthCallback = () => null;
 
 export default AuthProvider;

@@ -1,39 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 188 48% 6%;
-    --foreground: 180 28% 94%;
-    --card: 188 38% 10%;
-    --card-foreground: 180 28% 94%;
-    --popover: 188 38% 10%;
-    --popover-foreground: 180 28% 94%;
-    --primary: 173 86% 43%;
-    --primary-foreground: 188 50% 8%;
-    --secondary: 188 26% 16%;
-    --secondary-foreground: 180 28% 94%;
-    --accent: 190 92% 42%;
-    --accent-foreground: 188 50% 8%;
-    --muted: 188 24% 14%;
-    --muted-foreground: 184 22% 88%;
+    color-scheme: light;
+    --background: 182 28% 95%;
+    --foreground: 192 40% 14%;
+    --card: 180 20% 98%;
+    --card-foreground: 192 40% 14%;
+    --popover: 180 20% 98%;
+    --popover-foreground: 192 40% 14%;
+    --primary: 173 72% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 184 28% 89%;
+    --secondary-foreground: 192 38% 18%;
+    --accent: 190 84% 44%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 183 20% 91%;
+    --muted-foreground: 192 22% 38%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 188 24% 22%;
-    --input: 188 24% 22%;
-    --ring: 173 86% 43%;
-    --chart-1: 173 86% 43%;
-    --chart-2: 190 92% 42%;
-    --chart-3: 160 84% 45%;
-    --chart-4: 204 94% 44%;
-    --chart-5: 178 64% 36%;
+    --border: 184 20% 78%;
+    --input: 184 20% 78%;
+    --ring: 173 72% 38%;
+    --chart-1: 173 72% 38%;
+    --chart-2: 190 84% 44%;
+    --chart-3: 160 74% 40%;
+    --chart-4: 204 82% 46%;
+    --chart-5: 178 56% 34%;
+    --body-glow-1: rgba(16, 185, 129, 0.08);
+    --body-glow-2: rgba(14, 165, 233, 0.06);
+    --body-overlay-start: rgba(236, 245, 244, 0.992);
+    --body-overlay-end: rgba(228, 240, 241, 0.99);
+    --texture-primary: rgba(13, 148, 136, 0.035);
+    --texture-secondary: rgba(14, 165, 233, 0.028);
+    --texture-opacity: 0.12;
+    --texture-blend: multiply;
     --radius: 0.75rem;
   }
 
   .dark {
+    color-scheme: dark;
     --background: 188 52% 5%;
     --foreground: 180 30% 96%;
     --card: 188 40% 9%;
@@ -58,6 +66,14 @@
     --chart-3: 160 84% 52%;
     --chart-4: 204 94% 52%;
     --chart-5: 178 64% 44%;
+    --body-glow-1: rgba(56, 249, 215, 0.16);
+    --body-glow-2: rgba(34, 211, 238, 0.14);
+    --body-overlay-start: rgba(5, 26, 31, 0.86);
+    --body-overlay-end: rgba(3, 18, 23, 0.90);
+    --texture-primary: rgba(115, 255, 232, 0.06);
+    --texture-secondary: rgba(125, 211, 252, 0.05);
+    --texture-opacity: 0.24;
+    --texture-blend: screen;
   }
 }
 
@@ -67,17 +83,18 @@
   }
   
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
   
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'DM Sans', sans-serif;
     background-image:
-      radial-gradient(circle at 15% -10%, rgba(56, 249, 215, 0.16), transparent 38%),
-      radial-gradient(circle at 85% -15%, rgba(34, 211, 238, 0.14), transparent 42%),
-      linear-gradient(180deg, rgba(5, 26, 31, 0.86), rgba(3, 18, 23, 0.9));
-    background-attachment: fixed;
+      radial-gradient(circle at 15% -10%, var(--body-glow-1), transparent 38%),
+      radial-gradient(circle at 85% -15%, var(--body-glow-2), transparent 42%),
+      linear-gradient(180deg, var(--body-overlay-start), var(--body-overlay-end));
+    background-attachment: scroll;
+    transition: background-color 220ms ease, color 220ms ease, background-image 220ms ease;
   }
 
   .app-texture {
@@ -86,26 +103,26 @@
 
   .app-texture::before {
     content: '';
-    position: fixed;
+    position: absolute;
     inset: 0;
     pointer-events: none;
     background-image:
       repeating-linear-gradient(
         118deg,
-        rgba(115, 255, 232, 0.06) 0px,
-        rgba(115, 255, 232, 0.06) 1px,
+        var(--texture-primary) 0px,
+        var(--texture-primary) 1px,
         transparent 1px,
         transparent 110px
       ),
       repeating-linear-gradient(
         28deg,
-        rgba(125, 211, 252, 0.05) 0px,
-        rgba(125, 211, 252, 0.05) 1px,
+        var(--texture-secondary) 0px,
+        var(--texture-secondary) 1px,
         transparent 1px,
         transparent 140px
       );
-    opacity: 0.24;
-    mix-blend-mode: screen;
+    opacity: var(--texture-opacity);
+    mix-blend-mode: var(--texture-blend);
     z-index: 20;
   }
   
@@ -120,19 +137,22 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-teal-300 to-cyan-300;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-300 dark:to-cyan-300;
   }
   
   .hero-gradient {
-    @apply bg-gradient-to-br from-[#03141a] via-[#072129] to-[#0a3038];
+    @apply bg-gradient-to-br from-[#dceceb] via-[#eaf4f3] to-[#d8ebef] dark:from-[#03141a] dark:via-[#072129] dark:to-[#0a3038];
   }
   
   .glass-light {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-sm;
+    @apply border shadow-md;
+    background-color: rgba(248, 250, 252, 0.92);
+    border-color: rgba(203, 213, 225, 0.9);
   }
   
   .glass-dark {
-    @apply bg-[#03141a]/80 backdrop-blur-xl border border-teal-200/10 shadow-lg;
+    @apply border border-teal-200/10 shadow-lg;
+    background-color: rgba(3, 20, 26, 0.92);
   }
   
   .shadow-glow {
@@ -165,6 +185,43 @@
     opacity: 0.03;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  body {
+    background-attachment: fixed;
+  }
+
+  .app-texture::before {
+    position: fixed;
+  }
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .app-texture::before,
+  .grain::before {
+    display: none;
+  }
+
+  .glass-light,
+  .glass-dark {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .glass-light {
+    background-color: rgba(248, 250, 252, 0.97);
+  }
+
+  .glass-dark {
+    background-color: rgba(3, 20, 26, 0.94);
   }
 }
 
