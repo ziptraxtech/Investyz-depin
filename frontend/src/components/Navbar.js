@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Wallet, LogOut, User, ChevronDown } from 'lucide-react';
+import { Menu, X, Wallet, LogOut, User, ChevronDown, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '../components/ui/button';
 import {
   DropdownMenu,
@@ -17,15 +18,18 @@ import BrandLogo from './BrandLogo';
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { user, logout } = useAuth();
   const { connected, publicKey, disconnect } = useWallet();
+  const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const navLinks = [
+    { name: 'About', href: '/about' },
     { name: 'Segments', href: '/segments' },
     { name: 'How It Works', href: '/#how-it-works' },
-    { name: 'About', href: '/#about' },
+    { name: 'Blog', href: '/blog' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -33,6 +37,16 @@ const Navbar = () => {
   const truncateAddress = (address) => {
     if (!address) return '';
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDarkTheme = mounted ? resolvedTheme !== 'light' : true;
+
+  const toggleTheme = () => {
+    setTheme(isDarkTheme ? 'light' : 'dark');
   };
 
   return (
@@ -50,7 +64,7 @@ const Navbar = () => {
                   key={link.name}
                   to={link.href}
                   className={`text-sm font-medium transition-colors hover:text-foreground ${
-                    isActive(link.href) ? 'text-primary' : 'text-slate-300'
+                    isActive(link.href) ? 'text-primary' : 'text-foreground/75'
                   }`}
                   data-testid={`nav-${link.name.toLowerCase().replace(' ', '-')}`}
                 >
@@ -61,13 +75,24 @@ const Navbar = () => {
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="rounded-full border border-border/70 bg-white/95 text-foreground shadow-sm hover:bg-accent/60 dark:bg-background/75"
+                data-testid="theme-toggle-btn"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkTheme ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
+
               {/* Wallet Button */}
               {connected ? (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setWalletModalOpen(true)}
-                  className="rounded-full gap-2 text-slate-100 border-slate-700 hover:bg-slate-800"
+                  className="rounded-full gap-2 border-border/70 bg-white/95 text-foreground hover:bg-accent/60 dark:bg-background/75"
                   data-testid="wallet-connected-btn"
                 >
                   <Wallet className="h-4 w-4" />
@@ -78,7 +103,7 @@ const Navbar = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setWalletModalOpen(true)}
-                  className="rounded-full gap-2 text-slate-100 border-slate-700 hover:bg-slate-800"
+                  className="rounded-full gap-2 border-border/70 bg-white/95 text-foreground hover:bg-accent/60 dark:bg-background/75"
                   data-testid="connect-wallet-btn"
                 >
                   <Wallet className="h-4 w-4" />
@@ -120,7 +145,7 @@ const Navbar = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate('/login')}
-                    className="rounded-full px-5 text-slate-100 border-slate-700 hover:bg-slate-800"
+                    className="rounded-full px-5 border-border/70 bg-white/95 text-foreground hover:bg-accent/60 dark:bg-background/75"
                     data-testid="login-btn"
                   >
                     Login
@@ -138,14 +163,26 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 text-white hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              data-testid="mobile-menu-btn"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            <div className="flex items-center gap-2 md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="rounded-full border border-border/70 bg-white/95 text-foreground shadow-sm hover:bg-accent/60 dark:bg-background/75"
+                data-testid="mobile-theme-toggle-btn"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkTheme ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
+              <button
+                className="p-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                data-testid="mobile-menu-btn"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
           </div>
         </div>
 

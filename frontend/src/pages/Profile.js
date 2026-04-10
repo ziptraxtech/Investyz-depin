@@ -39,7 +39,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-16 dark bg-background" data-testid="profile-page">
+    <div className="min-h-screen pt-20 pb-16 bg-background" data-testid="profile-page">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Button
           variant="ghost"
@@ -181,11 +181,13 @@ const Profile = () => {
                 <div>
                   <p className="font-medium">Authentication Method</p>
                   <p className="text-sm text-muted-foreground">
-                    {user.auth_provider === 'google'
-                      ? 'Signed in with Google'
-                      : user.auth_provider === 'email'
-                        ? 'Signed in with email and password'
-                        : 'Signed in with Emergent OAuth'}
+                    {user.auth_provider === 'clerk'
+                      ? 'Managed by Clerk authentication'
+                      : user.auth_provider === 'google'
+                        ? 'Signed in with Google'
+                        : user.auth_provider === 'email'
+                          ? 'Signed in with email and password'
+                          : 'Signed in with secure authentication'}
                   </p>
                 </div>
               </div>

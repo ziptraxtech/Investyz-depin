@@ -47,6 +47,11 @@ const mockInvestments = [
   }
 ];
 
+const formatSegmentLabel = (value, fallback = 'Investment') =>
+  String(value || fallback)
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { connected, publicKey } = useWallet();
@@ -131,14 +136,14 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center dark">
+      <div className="min-h-screen pt-20 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-16 dark bg-background" data-testid="dashboard">
+    <div className="min-h-screen pt-20 pb-16 bg-background" data-testid="dashboard">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -275,9 +280,9 @@ const Dashboard = () => {
               <div className="space-y-4">
                 {investments.map((investment) => (
                   <div
-                    key={investment.investment_id}
+                    key={investment.investment_id || investment.id}
                     className="p-4 rounded-xl bg-muted/50 border border-border/50"
-                    data-testid={`investment-${investment.investment_id}`}
+                    data-testid={`investment-${investment.investment_id || investment.id}`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -285,9 +290,11 @@ const Dashboard = () => {
                           {getSegmentIcon(investment.segment_id)}
                         </div>
                         <div>
-                          <p className="font-semibold">{investment.plan_id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                          <p className="font-semibold">
+                            {formatSegmentLabel(investment.plan_id, investment.segment_name || investment.segment_id)}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {investment.segment_id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {formatSegmentLabel(investment.segment_name || investment.segment_id)}
                           </p>
                         </div>
                       </div>

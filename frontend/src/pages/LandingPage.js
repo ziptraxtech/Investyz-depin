@@ -5,6 +5,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../context/AuthContext';
 import { getFrontendApiUrl } from '../lib/apiConfig';
+import { filterVisibleSegments, isSegmentFuture } from '../lib/segmentVisibility';
 import { FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   ArrowRight,
@@ -46,13 +47,12 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [segments, setSegments] = useState([]);
   const [featureIndex, setFeatureIndex] = useState(0);
-  const [isFeatureSliderPaused, setIsFeatureSliderPaused] = useState(false);
 
   useEffect(() => {
     const fetchSegments = async () => {
       // If no backend, use mock data
       if (!API_URL || API_URL === '') {
-        setSegments(FALLBACK_SEGMENTS);
+        setSegments(filterVisibleSegments(FALLBACK_SEGMENTS));
         return;
       }
       
@@ -62,12 +62,12 @@ const LandingPage = () => {
           const result = await response.json();
           // Handle both formats: direct array or {success, data} wrapper
           const data = result.data || result;
-          setSegments(Array.isArray(data) ? data : FALLBACK_SEGMENTS);
+          setSegments(filterVisibleSegments(Array.isArray(data) ? data : FALLBACK_SEGMENTS));
         }
       } catch (error) {
         console.error('Failed to fetch segments:', error);
         // Fallback to mock data on error
-        setSegments(FALLBACK_SEGMENTS);
+        setSegments(filterVisibleSegments(FALLBACK_SEGMENTS));
       }
     };
     fetchSegments();
@@ -96,8 +96,8 @@ const LandingPage = () => {
     {
       icon: TrendingUp,
       title: 'High Yield Returns',
-      description: 'Earn up to 18% APY on your investments backed by real-world infrastructure assets.',
-      stat: '18%',
+      description: 'Earn up to 12% APY on your investments backed by real-world infrastructure assets.',
+      stat: '12%',
       statLabel: 'Max APY',
     },
     {
@@ -109,15 +109,15 @@ const LandingPage = () => {
     },
     {
       icon: Leaf,
-      title: 'Carbon Negative',
-      description: 'Your investments actively reduce carbon emissions and support sustainable growth.',
+      title: 'Carbon Neutral',
+      description: 'Your investments support lower-emission infrastructure and contribute to a more sustainable growth model.',
       stat: '50K+',
       statLabel: 'Tons COâ‚‚ Offset',
     },
     {
       icon: PiggyBank,
-      title: 'Daily Payouts',
-      description: 'Receive your rewards daily, directly to your connected Polygon wallet.',
+      title: 'Periodic Payouts',
+      description: 'Receive your rewards on flexible schedules, including weekly, monthly, quarterly, and annual distributions.',
       stat: '13K+',
       statLabel: 'Active Investors',
     },
@@ -132,7 +132,7 @@ const LandingPage = () => {
     {
       step: '02',
       title: 'Choose Your Segment',
-      description: 'Select from data centers, batteries, EV charging, renewable energy, or green credits.',
+      description: 'Select from live battery storage and EV DC fast charging opportunities.',
     },
     {
       step: '03',
@@ -141,15 +141,33 @@ const LandingPage = () => {
     },
   ];
 
-  useEffect(() => {
-    if (isFeatureSliderPaused || features.length <= 1) return undefined;
-
-    const timer = setInterval(() => {
-      setFeatureIndex((prev) => (prev + 1) % features.length);
-    }, 2000);
-
-    return () => clearInterval(timer);
-  }, [isFeatureSliderPaused, features.length]);
+  const processSteps = [
+    {
+      step: '01',
+      title: 'Asset Identification',
+      description: 'We identify high-potential infrastructure opportunities, starting with EV DC fast chargers.',
+    },
+    {
+      step: '02',
+      title: 'Asset Deployment & Structuring',
+      description: 'Assets are deployed or partnered with, and structured into investable opportunities.',
+    },
+    {
+      step: '03',
+      title: 'Fractional Investment',
+      description: 'Investors can participate with smaller amounts through fractional ownership.',
+    },
+    {
+      step: '04',
+      title: 'Revenue Generation',
+      description: 'Assets generate real-world income through usage, such as EV charging demand.',
+    },
+    {
+      step: '05',
+      title: 'Returns Distribution',
+      description: 'Investors receive returns based on actual asset performance.',
+    },
+  ];
 
   useEffect(() => {
     const handleFeatureArrowKeys = (event) => {
@@ -189,36 +207,36 @@ const LandingPage = () => {
       title: 'Startup India Certified',
       logo: '/certifications/startup-india.png',
       logoAlt: 'Startup India logo',
-      glow: 'from-cyan-500/20 to-transparent',
-      border: 'border-cyan-400/40',
-      checkColor: 'text-cyan-300',
+      glow: 'from-cyan-500/10 dark:from-cyan-500/20 to-transparent',
+      border: 'border-cyan-200 dark:border-cyan-400/40',
+      checkColor: 'text-cyan-600 dark:text-cyan-300',
     },
     {
       id: 'msme',
       title: 'MSME Registered',
       logo: '/certifications/msme.png',
       logoAlt: 'MSME logo',
-      glow: 'from-teal-500/20 to-transparent',
-      border: 'border-teal-400/40',
-      checkColor: 'text-teal-300',
+      glow: 'from-teal-500/10 dark:from-teal-500/20 to-transparent',
+      border: 'border-teal-200 dark:border-teal-400/40',
+      checkColor: 'text-teal-600 dark:text-teal-300',
     },
     {
       id: 'iso-9001',
       title: 'ISO 9001 Certified',
       logo: '/certifications/iso-9001.svg?v=2',
       logoAlt: 'ISO 9001 logo',
-      glow: 'from-sky-500/20 to-transparent',
-      border: 'border-sky-400/40',
-      checkColor: 'text-sky-300',
+      glow: 'from-sky-500/10 dark:from-sky-500/20 to-transparent',
+      border: 'border-sky-200 dark:border-sky-400/40',
+      checkColor: 'text-sky-600 dark:text-sky-300',
     },
     {
       id: 'iso-14001',
       title: 'ISO 14001 Certified',
       logo: '/certifications/iso-14001.svg?v=2',
       logoAlt: 'ISO 14001 logo',
-      glow: 'from-emerald-500/20 to-transparent',
-      border: 'border-emerald-400/40',
-      checkColor: 'text-emerald-300',
+      glow: 'from-emerald-500/10 dark:from-emerald-500/20 to-transparent',
+      border: 'border-emerald-200 dark:border-emerald-400/40',
+      checkColor: 'text-emerald-600 dark:text-emerald-300',
     },
   ];
 
@@ -281,38 +299,37 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center bg-[#04161b] grain overflow-hidden">
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-[#dceceb] via-[#eaf4f3] to-[#d8ebef] dark:from-[#04161b] dark:via-[#072129] dark:to-[#0a3038]">
         {/* Background Image */}
         <div
-          className="absolute inset-0 opacity-45 dark:opacity-50"
+          className="absolute inset-0 opacity-[0.44] dark:opacity-45"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1654419189892-d8814766c4fd?crop=entropy&cs=srgb&fm=jpg&q=85)',
+            backgroundImage: 'url(https://images.unsplash.com/photo-1654419189892-d8814766c4fd?auto=format&fit=crop&w=1400&q=68)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         />
-        <div className="absolute inset-0 bg-[#031317]/55" />
+        <div className="absolute inset-0 bg-[#dbeceb]/28 dark:bg-[#031317]/55" />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-40">
           <div className="max-w-3xl">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-400/30 mb-8">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400"></span>
               </span>
-              <span className="text-sm font-medium text-teal-100">Live on Polygon Network</span>
+              <span className="text-sm font-medium text-teal-700 dark:text-teal-100">Live on Polygon Network</span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6 font-['Outfit'] text-white">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6 font-['Outfit'] text-slate-950 dark:text-white">
               Invest in the{' '}
               <span className="text-gradient">Infrastructure</span>{' '}
               of Tomorrow
             </h1>
 
             {/* Subheadline */}
-            <p className="text-lg md:text-xl leading-relaxed text-teal-50/90 mb-10 max-w-2xl">
+            <p className="text-lg md:text-xl leading-relaxed text-slate-700 dark:text-teal-50/90 mb-10 max-w-2xl">
               Earn sustainable yields by investing in real-world assets like data centers, 
               battery storage, EV charging, and renewable energy through decentralized 
               physical infrastructure on Polygon.
@@ -322,7 +339,7 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 size="lg"
-                className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+                className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-colors"
                 onClick={() => user ? navigate('/dashboard') : login()}
                 data-testid="hero-cta-primary"
               >
@@ -344,24 +361,181 @@ const LandingPage = () => {
             <div className="mt-12 flex flex-wrap items-center gap-8">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span className="text-sm text-teal-50/85">Audited Smart Contracts</span>
+                <span className="text-sm text-slate-700 dark:text-teal-50/85">Audited Smart Contracts</span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <span className="text-sm text-teal-50/85">Non-Custodial</span>
+                <span className="text-sm text-slate-700 dark:text-teal-50/85">Non-Custodial</span>
               </div>
               <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
-                <span className="text-sm text-teal-50/85">Multi-Wallet Support</span>
+                <span className="text-sm text-slate-700 dark:text-teal-50/85">Multi-Wallet Support</span>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center p-2">
-            <div className="w-1 h-2 rounded-full bg-muted-foreground/50" />
+            {/* AI-Powered Segments Section */}
+      <section className="py-20 md:py-32 bg-gradient-to-b from-[#deefee] via-[#edf6f5] to-[#d9eaee] text-slate-900 dark:from-[#03141a] dark:to-[#08252b] dark:text-white relative overflow-hidden" id="segments">
+        <div className="absolute inset-0 opacity-[0.06] dark:opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+            backgroundSize: '40px 40px',
+          }} />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-12">
+            <div>
+              <Badge className="mb-4 bg-teal-500/15 text-teal-700 border-teal-400/30 px-4 py-1 dark:bg-teal-500/20 dark:text-teal-100 dark:border-teal-400/40">
+                <Brain className="h-4 w-4 mr-2" />
+                Powered by Agentic AI
+              </Badge>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 font-['Outfit']">
+                AI-Powered <span className="bg-gradient-to-r from-teal-300 to-cyan-300 bg-clip-text text-transparent">Investment Segments</span>
+              </h2>
+              <p className="text-lg md:text-xl text-slate-600 dark:text-slate-200 max-w-4xl leading-relaxed">
+                By integrating Agentic AI—autonomous systems that can reason, plan, and act independently—we move beyond diagnostics into self-diagnosing infrastructure while you diversify across sustainable categories.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="rounded-full gap-2 border-slate-600 hover:border-slate-400"
+              onClick={() => navigate('/segments')}
+              data-testid="view-all-segments-btn"
+            >
+              View All Segments
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {sortedSegments.slice(0, 6).map((segment, index) => {
+              const useCase = agenticAIUseCases[index % agenticAIUseCases.length];
+              const isFutureSegment = isSegmentFuture(segment.segment_id);
+              const cardContent = (
+                <Card className={`overflow-hidden h-full bg-[#f6fbfb] border-slate-200 dark:bg-slate-800/50 dark:border-slate-700/50 ${isFutureSegment ? 'opacity-95' : 'hover:border-cyan-300 transition-colors dark:hover:border-slate-500'}`}>
+                  <div className="aspect-video relative overflow-hidden">
+                    <img
+                      src={segment.image_url}
+                      alt={segment.name}
+                      className={`w-full h-full object-cover transition-transform duration-500 ${isFutureSegment ? 'scale-100 saturate-[0.8]' : 'group-hover:scale-105'}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                    <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 border border-cyan-300/40 text-cyan-100">
+                        <Cpu className="h-3.5 w-3.5" />
+                        {useCase.subtitle}
+                      </span>
+                      {isFutureSegment && (
+                        <span className="inline-flex items-center rounded-full border border-amber-200/60 bg-amber-100/90 px-3 py-1 text-xs font-semibold text-amber-950">
+                          Launching Next
+                        </span>
+                      )}
+                    </div>
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <div className="flex items-center gap-2 text-white">
+                        <div className="p-2 rounded-lg bg-white/20">
+                          {getIcon(segment.icon)}
+                        </div>
+                        <h3 className="text-lg font-semibold">{segment.name}</h3>
+                      </div>
+                    </div>
+                  </div>
+                  <CardContent className="p-5">
+                    <p className={`text-sm font-medium mb-2 flex items-center gap-2 ${isFutureSegment ? 'text-amber-700 dark:text-amber-300' : 'text-cyan-300'}`}>
+                      <Target className="h-4 w-4" />
+                      {isFutureSegment ? 'Future access opening after current rollout' : useCase.result}
+                    </p>
+                    <p className="text-slate-600 dark:text-slate-200 text-sm leading-relaxed mb-4 line-clamp-3">
+                      {isFutureSegment
+                        ? 'This segment is already structured in our product roadmap and codebase, and will be enabled when the next infrastructure expansion goes live.'
+                        : useCase.description}
+                    </p>
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-700/50">
+                      {isFutureSegment ? (
+                        <>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-300">Availability</p>
+                            <p className="text-lg font-bold text-slate-950 dark:text-white">Roadmap Phase</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-slate-500 dark:text-slate-300">Status</p>
+                            <p className="text-lg font-semibold text-amber-700 dark:text-amber-300">Not Live Yet</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-300">Total TVL</p>
+                            <p className="text-lg font-bold text-primary">{formatTVL(segment.total_tvl)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-slate-500 dark:text-slate-300">Investors</p>
+                            <p className="text-lg font-semibold text-slate-950 dark:text-white">{segment.investors_count.toLocaleString()}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+
+              return (
+                isFutureSegment ? (
+                  <div
+                    key={segment.segment_id}
+                    className="group"
+                    data-testid={`segment-card-${segment.segment_id}`}
+                  >
+                    {cardContent}
+                  </div>
+                ) : (
+                  <Link
+                    key={segment.segment_id}
+                    to={`/segments/${segment.segment_id}`}
+                    className="group"
+                    data-testid={`segment-card-${segment.segment_id}`}
+                  >
+                    {cardContent}
+                  </Link>
+                )
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 border-t border-slate-200 dark:border-slate-700/50">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Activity className="h-5 w-5 text-cyan-300" />
+                <span className="text-3xl font-bold text-slate-950 dark:text-white">24/7</span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-300">Autonomous Monitoring</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Timer className="h-5 w-5 text-emerald-400" />
+                <span className="text-3xl font-bold text-slate-950 dark:text-white">&lt;1s</span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-300">Response Time</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Gauge className="h-5 w-5 text-cyan-300" />
+                <span className="text-3xl font-bold text-slate-950 dark:text-white">99.9%</span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-300">System Uptime</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Route className="h-5 w-5 text-teal-300" />
+                <span className="text-3xl font-bold text-slate-950 dark:text-white">Zero</span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-300">Human Latency</p>
+            </div>
           </div>
         </div>
       </section>
@@ -370,7 +544,7 @@ const LandingPage = () => {
       <section className="py-20 md:py-32 bg-background" id="features">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4 font-['Outfit'] text-white">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4 font-['Outfit'] text-foreground">
               Why Choose <span className="text-gradient">Investyz</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -380,8 +554,6 @@ const LandingPage = () => {
 
           <div
             className="max-w-5xl mx-auto"
-            onMouseEnter={() => setIsFeatureSliderPaused(true)}
-            onMouseLeave={() => setIsFeatureSliderPaused(false)}
           >
             <div
               className="overflow-hidden rounded-2xl cursor-pointer"
@@ -395,7 +567,7 @@ const LandingPage = () => {
                 {features.map((feature, index) => (
                   <div key={index} className="w-full shrink-0">
                     <Card
-                      className="p-10 md:p-14 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all group min-h-[360px] md:min-h-[420px]"
+                      className="p-10 md:p-14 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-colors group min-h-[360px] md:min-h-[420px]"
                       data-testid={`feature-card-${index}`}
                     >
                       <CardContent className="p-0 h-full flex flex-col">
@@ -449,10 +621,10 @@ const LandingPage = () => {
       </section>
 
       {/* Trust & Certifications */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-[#031722] via-[#072033] to-[#06243a]">
+      <section className="py-20 md:py-28 bg-gradient-to-b from-[#deefee] via-[#edf6f5] to-[#e4f0f2] dark:from-[#031722] dark:via-[#072033] dark:to-[#06243a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight font-['Outfit'] text-white">
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight font-['Outfit'] text-foreground dark:text-white">
               Trusted & Certified Platform
             </h2>
           </div>
@@ -461,7 +633,7 @@ const LandingPage = () => {
             {trustCertifications.map((cert) => (
                 <Card
                   key={cert.id}
-                  className={`relative overflow-hidden rounded-2xl bg-[#102f4e]/90 ${cert.border} hover:border-primary/80 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-[0_18px_40px_rgba(34,211,238,0.25)] group`}
+                  className={`relative overflow-hidden rounded-2xl bg-[#f5fbfa] dark:bg-[#102f4e]/90 ${cert.border} hover:border-primary/80 transition-colors duration-300 hover:shadow-[0_18px_40px_rgba(34,211,238,0.12)] dark:hover:shadow-[0_18px_40px_rgba(34,211,238,0.25)] group`}
                   data-testid={`trust-cert-${cert.id}`}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${cert.glow} opacity-70 group-hover:opacity-100 transition-opacity duration-300`} />
@@ -476,6 +648,7 @@ const LandingPage = () => {
                         alt={cert.logoAlt}
                         className="w-full h-14 md:h-16 object-contain group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
+                        decoding="async"
                         onLoad={(e) => {
                           e.currentTarget.style.display = 'block';
                           const fallback = e.currentTarget.nextElementSibling;
@@ -492,7 +665,7 @@ const LandingPage = () => {
                       </div>
                     </div>
 
-                    <h3 className="text-lg md:text-xl font-semibold text-white text-center font-['Outfit'] leading-snug group-hover:text-cyan-100 transition-colors duration-300">
+                    <h3 className="text-lg md:text-xl font-semibold text-foreground dark:text-white text-center font-['Outfit'] leading-snug group-hover:text-cyan-700 dark:group-hover:text-cyan-100 transition-colors duration-300">
                       {cert.title}
                     </h3>
                   </CardContent>
@@ -502,136 +675,11 @@ const LandingPage = () => {
         </div>
       </section>
 
-            {/* AI-Powered Segments Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-b from-[#03141a] to-[#08252b] text-white relative overflow-hidden" id="segments">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
-            backgroundSize: '40px 40px',
-          }} />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-12">
-            <div>
-              <Badge className="mb-4 bg-teal-500/20 text-teal-100 border-teal-400/40 px-4 py-1">
-                <Brain className="h-4 w-4 mr-2" />
-                Powered by Agentic AI
-              </Badge>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 font-['Outfit']">
-                AI-Powered <span className="bg-gradient-to-r from-teal-300 to-cyan-300 bg-clip-text text-transparent">Investment Segments</span>
-              </h2>
-              <p className="text-lg md:text-xl text-slate-200 max-w-4xl leading-relaxed">
-                By integrating Agentic AI—autonomous systems that can reason, plan, and act independently—we move beyond diagnostics into self-diagnosing infrastructure while you diversify across sustainable categories.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="rounded-full gap-2 border-slate-600 hover:border-slate-400"
-              onClick={() => navigate('/segments')}
-              data-testid="view-all-segments-btn"
-            >
-              View All Segments
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {sortedSegments.slice(0, 6).map((segment, index) => {
-              const useCase = agenticAIUseCases[index % agenticAIUseCases.length];
-              return (
-                <Link
-                  key={segment.segment_id}
-                  to={`/segments/${segment.segment_id}`}
-                  className="group"
-                  data-testid={`segment-card-${segment.segment_id}`}
-                >
-                  <Card className="overflow-hidden h-full bg-slate-800/50 border-slate-700/50 hover:border-slate-500 transition-all hover:-translate-y-1 backdrop-blur-sm">
-                    <div className="aspect-video relative overflow-hidden">
-                      <img
-                        src={segment.image_url}
-                        alt={segment.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      <div className="absolute top-4 left-4">
-                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 border border-cyan-300/40 text-cyan-100">
-                          <Cpu className="h-3.5 w-3.5" />
-                          {useCase.subtitle}
-                        </span>
-                      </div>
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <div className="flex items-center gap-2 text-white">
-                          <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
-                            {getIcon(segment.icon)}
-                          </div>
-                          <h3 className="text-lg font-semibold">{segment.name}</h3>
-                        </div>
-                      </div>
-                    </div>
-                    <CardContent className="p-5">
-                      <p className="text-sm font-medium text-cyan-300 mb-2 flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        {useCase.result}
-                      </p>
-                      <p className="text-slate-200 text-sm leading-relaxed mb-4 line-clamp-3">
-                        {useCase.description}
-                      </p>
-                      <div className="flex justify-between items-center pt-4 border-t border-slate-700/50">
-                        <div>
-                          <p className="text-xs text-slate-300">Total TVL</p>
-                          <p className="text-lg font-bold text-primary">{formatTVL(segment.total_tvl)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-slate-300">Investors</p>
-                          <p className="text-lg font-semibold text-white">{segment.investors_count.toLocaleString()}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 border-t border-slate-700/50">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Activity className="h-5 w-5 text-cyan-300" />
-                <span className="text-3xl font-bold text-white">24/7</span>
-              </div>
-              <p className="text-sm text-slate-300">Autonomous Monitoring</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Timer className="h-5 w-5 text-emerald-400" />
-                <span className="text-3xl font-bold text-white">&lt;1s</span>
-              </div>
-              <p className="text-sm text-slate-300">Response Time</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Gauge className="h-5 w-5 text-cyan-300" />
-                <span className="text-3xl font-bold text-white">99.9%</span>
-              </div>
-              <p className="text-sm text-slate-300">System Uptime</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Route className="h-5 w-5 text-teal-300" />
-                <span className="text-3xl font-bold text-white">Zero</span>
-              </div>
-              <p className="text-sm text-slate-300">Human Latency</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* How It Works Section */}
-      <section className="py-20 md:py-32 bg-background" id="how-it-works">
+      <section className="scroll-mt-24 py-20 md:py-32 bg-background" id="how-it-works">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4 font-['Outfit'] text-white">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4 font-['Outfit'] text-foreground">
               How It <span className="text-gradient">Works</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -661,7 +709,7 @@ const LandingPage = () => {
           <div className="text-center mt-12">
             <Button
               size="lg"
-              className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+              className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-colors"
               onClick={() => user ? navigate('/dashboard') : login()}
               data-testid="how-it-works-cta"
             >
@@ -672,36 +720,25 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-accent/10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6 font-['Outfit']">
-            <span className="text-teal-100">Ready to Invest in a</span>{' '}
-            <span className="text-gradient">Sustainable Future</span>?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Join thousands of investors earning yields while powering the green economy.
-            Start with as little as $100.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button
-              size="lg"
-              className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
-              onClick={() => user ? navigate('/dashboard') : login()}
-              data-testid="cta-primary"
-            >
-              Start Investing
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-full px-8 py-6 text-lg font-medium border-2 border-cyan-400/60 bg-cyan-500 text-slate-950 hover:bg-cyan-400 hover:border-cyan-300"
-              onClick={() => window.open('https://polygon.technology', '_blank')}
-              data-testid="cta-learn-more"
-            >
-              Learn About Polygon
-            </Button>
+      <section className="py-20 md:py-32 bg-gradient-to-b from-muted/25 to-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-primary/80">Our Process</p>
+            <h2 className="text-3xl md:text-5xl font-semibold font-['Outfit'] mt-2">
+              We make infrastructure investing simple, structured, and transparent
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-4">
+            {processSteps.map((item) => (
+              <Card key={item.step} className="border-border/60 bg-card/95 h-full">
+                <CardContent className="p-6">
+                  <p className="text-4xl font-bold text-primary/20 font-['Outfit'] mb-4">{item.step}</p>
+                  <h3 className="text-lg font-semibold font-['Outfit'] mb-3">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>

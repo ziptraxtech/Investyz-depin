@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Server, Battery, Zap, Sun, Leaf, Search, TrendingUp, Users, ArrowRight } from 'lucide-react';
 import { getFrontendApiUrl } from '../lib/apiConfig';
+import { filterLiveSegments, filterVisibleSegments, isSegmentFuture } from '../lib/segmentVisibility';
 import { FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 
 const API_URL = getFrontendApiUrl();
@@ -13,11 +14,13 @@ const SEGMENTS_CACHE_KEY = 'segments_cache_v2';
 const normalizeSegmentsPayload = (result) => {
   const data = result?.data || result;
   if (!Array.isArray(data)) return [];
-  return data.filter((segment) =>
-    segment &&
-    typeof segment.name === 'string' &&
-    typeof segment.short_description === 'string' &&
-    Array.isArray(segment.features)
+  return filterVisibleSegments(
+    data.filter((segment) =>
+      segment &&
+      typeof segment.name === 'string' &&
+      typeof segment.short_description === 'string' &&
+      Array.isArray(segment.features)
+    )
   );
 };
 
@@ -50,7 +53,7 @@ const SegmentsPage = () => {
       localStorage.removeItem('segments_cache_v1');
 
       if (!API_URL) {
-        setSegments(sortSegmentsForDisplay(FALLBACK_SEGMENTS));
+        setSegments(sortSegmentsForDisplay(filterVisibleSegments(FALLBACK_SEGMENTS)));
         setLoading(false);
         return;
       }
@@ -97,7 +100,7 @@ const SegmentsPage = () => {
           }
         }
 
-        setSegments(sortSegmentsForDisplay(FALLBACK_SEGMENTS));
+        setSegments(sortSegmentsForDisplay(filterVisibleSegments(FALLBACK_SEGMENTS)));
         setFetchError('Live data is temporarily unavailable. Showing fallback segments.');
       } finally {
         setLoading(false);
@@ -132,8 +135,9 @@ const SegmentsPage = () => {
     return name.includes(search) || description.includes(search);
   });
 
-  const totalTVL = segments.reduce((sum, seg) => sum + seg.total_tvl, 0);
-  const totalInvestors = segments.reduce((sum, seg) => sum + seg.investors_count, 0);
+  const liveSegments = filterLiveSegments(segments);
+  const totalTVL = liveSegments.reduce((sum, seg) => sum + seg.total_tvl, 0);
+  const totalInvestors = liveSegments.reduce((sum, seg) => sum + seg.investors_count, 0);
 
   if (loading) {
     return (
@@ -150,7 +154,7 @@ const SegmentsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6 font-['Outfit']">
-              <span className="text-white">Investment</span>{' '}<span className="text-gradient">Segments</span>
+              <span className="text-foreground">Investment</span>{' '}<span className="text-gradient">Segments</span>
             </h1>
             <p className="text-lg md:text-xl leading-relaxed text-muted-foreground mb-8">
               Explore our diverse portfolio of sustainable infrastructure assets. 
@@ -201,35 +205,42 @@ const SegmentsPage = () => {
           )}
 
           <div className="grid md:grid-cols-2 gap-8">
-            {filteredSegments.map((segment) => (
-              <Link
-                key={segment.segment_id}
-                to={`/segments/${segment.segment_id}`}
-                className="group"
-                data-testid={`segment-${segment.segment_id}`}
-              >
-                <Card className="overflow-hidden h-full hover:border-primary/30 transition-all hover:-translate-y-2 duration-300">
+            {filteredSegments.map((segment) => {
+              const isFutureSegment = isSegmentFuture(segment.segment_id);
+              const cardContent = (
+                <Card className={`overflow-hidden h-full duration-300 ${isFutureSegment ? 'border-amber-200/80 bg-card/95' : 'hover:border-primary/30 transition-all hover:-translate-y-2'}`}>
                   <div className="grid md:grid-cols-2">
                     {/* Image */}
                     <div className="aspect-square md:aspect-auto relative overflow-hidden">
                       <img
                         src={segment.image_url}
                         alt={segment.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className={`w-full h-full object-cover transition-transform duration-500 ${isFutureSegment ? 'scale-100 saturate-[0.8]' : 'group-hover:scale-110'}`}
+                        loading="lazy"
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent md:bg-gradient-to-t" />
-                      <div className="absolute top-4 left-4 p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white">
-                        {getIcon(segment.icon)}
+                      <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                        <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white">
+                          {getIcon(segment.icon)}
+                        </div>
+                        {isFutureSegment && (
+                          <span className="inline-flex items-center rounded-full border border-amber-200/70 bg-amber-100/95 px-3 py-1 text-xs font-semibold text-amber-950">
+                            Launching Next
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Content */}
                     <CardContent className="p-6 flex flex-col">
-                      <h2 className="text-2xl font-bold mb-3 font-['Outfit'] group-hover:text-primary transition-colors">
+                      <h2 className={`text-2xl font-bold mb-3 font-['Outfit'] transition-colors ${isFutureSegment ? 'text-foreground' : 'group-hover:text-primary'}`}>
                         {segment.name}
                       </h2>
                       <p className="text-muted-foreground mb-6 flex-grow">
-                        {segment.short_description}
+                        {isFutureSegment
+                          ? 'This segment is already designed inside the platform and is being held for a future expansion release.'
+                          : segment.short_description}
                       </p>
 
                       {/* Features */}
@@ -237,7 +248,7 @@ const SegmentsPage = () => {
                         {segment.features.slice(0, 3).map((feature, idx) => (
                           <span
                             key={idx}
-                            className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${isFutureSegment ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'bg-primary/10 text-primary'}`}
                           >
                             {feature}
                           </span>
@@ -246,27 +257,64 @@ const SegmentsPage = () => {
 
                       {/* Stats */}
                       <div className="flex justify-between items-center pt-4 border-t border-border">
-                        <div>
-                          <p className="text-xs text-muted-foreground">TVL</p>
-                          <p className="text-xl font-bold text-primary">{formatTVL(segment.total_tvl)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Investors</p>
-                          <p className="text-xl font-bold">{segment.investors_count.toLocaleString()}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                        >
-                          <ArrowRight className="h-5 w-5" />
-                        </Button>
+                        {isFutureSegment ? (
+                          <>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Availability</p>
+                              <p className="text-xl font-bold text-foreground">Roadmap Release</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">Status</p>
+                              <p className="text-xl font-bold text-amber-700 dark:text-amber-300">Not Live Yet</p>
+                            </div>
+                            <div className="rounded-full border border-amber-300/60 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                              Future Segment
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <p className="text-xs text-muted-foreground">TVL</p>
+                              <p className="text-xl font-bold text-primary">{formatTVL(segment.total_tvl)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">Investors</p>
+                              <p className="text-xl font-bold">{segment.investors_count.toLocaleString()}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                            >
+                              <ArrowRight className="h-5 w-5" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </div>
                 </Card>
-              </Link>
-            ))}
+              );
+
+              return isFutureSegment ? (
+                <div
+                  key={segment.segment_id}
+                  className="group"
+                  data-testid={`segment-${segment.segment_id}`}
+                >
+                  {cardContent}
+                </div>
+              ) : (
+                <Link
+                  key={segment.segment_id}
+                  to={`/segments/${segment.segment_id}`}
+                  className="group"
+                  data-testid={`segment-${segment.segment_id}`}
+                >
+                  {cardContent}
+                </Link>
+              );
+            })}
           </div>
 
           {filteredSegments.length === 0 && (
