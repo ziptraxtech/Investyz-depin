@@ -67,10 +67,17 @@ const webpackConfig = {
         webpackConfig.plugins.push(healthPluginInstance);
       }
 
-      // Expose Clerk publishable key from environment at build time.
-      // This allows Vercel build envs to provide CLERK_PUBLISHABLE_KEY without requiring the CRA prefix.
+      // Expose Clerk publishable key variables from environment at build time.
+      // This ensures Vercel build envs can use REACT_APP_CLERK_PUBLISHABLE_KEY,
+      // NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, or CLERK_PUBLISHABLE_KEY.
       webpackConfig.plugins.push(
         new webpack.DefinePlugin({
+          'process.env.REACT_APP_CLERK_PUBLISHABLE_KEY': JSON.stringify(
+            process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || ''
+          ),
+          'process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY': JSON.stringify(
+            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''
+          ),
           'process.env.CLERK_PUBLISHABLE_KEY': JSON.stringify(process.env.CLERK_PUBLISHABLE_KEY || ''),
         })
       );
