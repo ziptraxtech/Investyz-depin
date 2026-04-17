@@ -3,8 +3,29 @@ import { Navigate } from 'react-router-dom';
 import { SignIn, SignUp, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { Card, CardContent } from '../components/ui/card';
 
-const CLERK_PUBLISHABLE_KEY =
-  process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const getClerkPublishableKey = () => {
+  const buildKey =
+    process.env.REACT_APP_CLERK_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+    process.env.CLERK_PUBLISHABLE_KEY;
+
+  if (buildKey) {
+    return buildKey;
+  }
+
+  if (typeof window !== 'undefined') {
+    return (
+      window.REACT_APP_CLERK_PUBLISHABLE_KEY ||
+      window.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+      window.CLERK_PUBLISHABLE_KEY ||
+      ''
+    );
+  }
+
+  return '';
+};
+
+const CLERK_PUBLISHABLE_KEY = getClerkPublishableKey();
 const CLERK_ENABLED = Boolean(CLERK_PUBLISHABLE_KEY);
 
 const clerkAppearance = {
