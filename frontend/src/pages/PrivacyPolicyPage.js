@@ -60,7 +60,7 @@ const policySections = [
     title: '8. Your Rights',
     content: [
       'Depending on applicable law, you may request access to your data, correction of inaccurate information, deletion of data, withdrawal of consent, or opt-out from certain communications.',
-      'To exercise these rights, you may use the placeholder contact details below until official support channels are finalized.',
+      'To exercise these rights, you may contact the INVESTYZ team at investyzasset@gmail.com.',
     ],
   },
   {
@@ -173,6 +173,9 @@ const PrivacyPolicyPage = () => {
                         If you have any questions about this Privacy Policy, your data, or a
                         request related to your privacy rights, please contact the INVESTYZ team
                         through the official contact channels available on the website.
+                      </p>
+                      <p className="text-foreground font-medium">
+                        Email: investyzasset@gmail.com
                       </p>
                       <p className="text-foreground font-medium">
                         Website: https://www.investyz.com/

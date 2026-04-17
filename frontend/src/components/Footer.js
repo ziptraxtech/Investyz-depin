@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Twitter, Github, MessageCircle, Mail } from 'lucide-react';
+import { Twitter, Facebook, Instagram, Mail } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 
 const Footer = () => {
@@ -26,9 +26,9 @@ const Footer = () => {
 
   const socialLinks = [
     { name: 'Twitter', icon: Twitter, href: '#' },
-    { name: 'Github', icon: Github, href: '#' },
-    { name: 'Discord', icon: MessageCircle, href: '#' },
-    { name: 'Email', icon: Mail, href: 'mailto:hello@investyz.io' },
+    { name: 'Facebook', icon: Facebook, href: '#' },
+    { name: 'Instagram', icon: Instagram, href: '#' },
+    { name: 'Email', icon: Mail, href: 'mailto:investyzasset@gmail.com' },
   ];
 
   return (
