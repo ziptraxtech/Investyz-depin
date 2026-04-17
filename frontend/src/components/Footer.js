@@ -37,9 +37,12 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-2">
             <BrandLogo className="mb-4" frameClassName="h-11 w-[180px]" />
-            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Invest in sustainable infrastructure. Earn yields while powering the green economy on Solana.
-            </p>
+            <div className="text-sm text-muted-foreground mb-6 max-w-xs space-y-2">
+              <p className="font-semibold text-foreground">ZIPTRAX CLEANTECH PRIVATE LIMITED</p>
+              <p className="font-semibold text-foreground">CIN: U74999DL2016PTC309316</p>
+              <p>H No. 24, Gujar Gali, Mohalla, Chandan Hola, Chhatarpur, New Delhi, Delhi 110074</p>
+              <p>Email : investyzasset@gmail.com &amp; hello@ziptrax.in</p>
+            </div>
             <div className="flex gap-3">
               {socialLinks.map((social) => (
                 <a

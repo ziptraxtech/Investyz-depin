@@ -48,6 +48,7 @@ const EV_PROJECT = {
   city: 'New Delhi',
   state: 'Delhi',
   navigationUrl: 'https://maps.app.goo.gl/J2x3aiXyB2DAQtNc8?g_st=aw',
+  dashboardUrl: 'https://insights.zipsureai.com/stations/dashboard?device=9',
 };
 
 const SegmentDetailPage = () => {
@@ -530,15 +531,30 @@ const SegmentDetailPage = () => {
 
               {showProjectsTab && (
                 <TabsContent value="projects" className="mt-6">
-                  <Card>
+                  <Card className="border-primary/40 shadow-[0_24px_80px_-32px_rgba(16,185,129,0.45)]">
                     <CardContent className="p-6 md:p-8">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
                           <p className="text-xs uppercase tracking-[0.24em] text-primary/80">Our Projects</p>
-                          <h3 className="text-2xl md:text-3xl font-semibold font-['Outfit'] mt-3">
-                            {EV_PROJECT.siteName}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-2">{EV_PROJECT.projectCode}</p>
+                          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                            <div>
+                              <h3 className="text-2xl md:text-3xl font-semibold font-['Outfit'] leading-tight">
+                                {EV_PROJECT.siteName}
+                              </h3>
+                              <p className="text-sm text-muted-foreground mt-2">{EV_PROJECT.projectCode}</p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <Button
+                                asChild
+                                className="rounded-full px-4 py-2 text-sm font-semibold"
+                              >
+                                <a href={EV_PROJECT.navigationUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2">
+                                  <Navigation className="h-4 w-4" />
+                                  Navigate Now
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                         <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400">
                           <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
@@ -546,28 +562,40 @@ const SegmentDetailPage = () => {
                         </div>
                       </div>
 
-                      <div className="mt-6 rounded-2xl border border-border bg-muted/40 px-4 py-4">
-                        <div className="flex items-start gap-3">
-                          <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <p className="text-sm md:text-base text-foreground/90">{EV_PROJECT.address}</p>
+                      <div className="mt-6 rounded-3xl border border-border bg-muted/20 p-6 shadow-sm">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <p className="text-sm uppercase tracking-[0.2em] text-primary/80">Address</p>
+                            <p className="mt-3 text-base md:text-lg text-foreground/90">{EV_PROJECT.address}</p>
+                          </div>
+                          <div className="rounded-3xl bg-white/5 border border-border px-5 py-4 text-center md:text-right">
+                            <p className="text-xs uppercase tracking-[0.2em] text-primary/80">Location</p>
+                            <p className="mt-3 text-2xl font-semibold font-['Outfit'] uppercase">{EV_PROJECT.city}</p>
+                            <p className="text-sm text-muted-foreground mt-1 uppercase">{EV_PROJECT.state}</p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="mt-5 rounded-2xl border border-border bg-muted/30 p-5">
-                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary/80">Location</p>
-                        <p className="mt-3 text-2xl font-semibold font-['Outfit'] uppercase">{EV_PROJECT.city}</p>
-                        <p className="text-sm text-muted-foreground mt-1 uppercase">{EV_PROJECT.state}</p>
+                      <div className="mt-8 rounded-[2rem] border border-border bg-background/95 p-6 shadow-[0_16px_40px_-18px_rgba(15,23,42,0.75)]">
+                        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.2em] text-primary/80">Live Project Dashboard</p>
+                            <h4 className="text-xl font-semibold">EV DC Fast Charging Insights</h4>
+                            <p className="text-sm text-muted-foreground">Glorified dashboard view for the station performance details.</p>
+                          </div>
+                          <div className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary">
+                            LIVE DASHBOARD
+                          </div>
+                        </div>
+                        <div className="overflow-hidden rounded-[1.5rem] border border-border bg-slate-950">
+                          <iframe
+                            src={EV_PROJECT.dashboardUrl}
+                            title="EV DC Fast Charging Dashboard"
+                            className="w-full min-h-[560px] border-0"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                          />
+                        </div>
                       </div>
-
-                      <Button
-                        asChild
-                        className="w-full mt-8 rounded-2xl py-6 text-lg font-semibold"
-                      >
-                        <a href={EV_PROJECT.navigationUrl} target="_blank" rel="noreferrer">
-                          <Navigation className="mr-2 h-5 w-5" />
-                          Navigate Now
-                        </a>
-                      </Button>
                     </CardContent>
                   </Card>
                 </TabsContent>

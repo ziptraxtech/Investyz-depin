@@ -64,6 +64,16 @@ const termsSections = [
     ],
   },
   {
+    title: '8.1 Refund, Cancellation, And Replacement Policy',
+    content: [
+      'All transactions on INVESTYZ are final once completed and confirmed on the platform.',
+      'Users are responsible for verifying all transaction details, amounts, and investment parameters before confirming any participation.',
+      'Refunds: Requests for refunds must be submitted within 48 hours of transaction completion and are subject to verification of grounds such as duplicate transactions or processing errors. Refunds will be processed back to the original payment method within 7-10 business days.',
+      'Cancellations: Cancellations of ongoing or locked participation may not be permitted depending on the underlying asset lock-in period and applicable legal agreements. Cancellation requests must comply with the specific investment terms shown at the time of participation.',
+      'Replacements: If a transaction fails due to platform or technical error, INVESTYZ will work to resolve or replace the transaction at no additional cost to the user.',
+    ],
+  },
+  {
     title: '9. Intellectual Property',
     content: [
       'The INVESTYZ platform, branding, software, design, and content are owned by INVESTYZ or its licensors and protected by law.',

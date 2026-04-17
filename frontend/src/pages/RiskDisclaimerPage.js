@@ -5,80 +5,69 @@ import { Mail } from 'lucide-react';
 
 const riskSections = [
   {
-    title: '1. General Risk Notice',
+    title: '1. Regulatory Status',
     content: [
-      'Participation in opportunities presented through INVESTYZ involves risk.',
-      'Real-world assets, infrastructure-linked income, and digital platforms are not risk-free, so users should make decisions carefully and independently.',
+      'INVESTYZ does not represent that it is registered, licensed, or regulated by any financial regulatory authority in India, including but not limited to the Securities and Exchange Board of India (SEBI) or the Reserve Bank of India (RBI), unless expressly stated otherwise.',
+      'Participation on the platform does not constitute an investment in regulated securities or financial products.',
     ],
   },
   {
-    title: '2. No Guaranteed Returns',
+    title: '2. No Offer or Solicitation',
     content: [
-      'Any references to projected returns, payouts, growth, or yields are for informational purposes unless clearly stated otherwise.',
-      'Returns are not guaranteed and may vary due to market conditions, asset performance, utilization, regulation, expenses, downtime, and other factors.',
+      'Nothing on this platform constitutes or should be construed as an offer to sell, a solicitation of an offer to buy, or a recommendation to invest in any securities, financial instruments, or investment products under applicable law.',
     ],
   },
   {
-    title: '3. Real-World Asset And Infrastructure Risks',
+    title: '3. Nature of Participation',
     content: [
-      'INVESTYZ currently focuses on infrastructure opportunities such as EV DC fast charging, which may be affected by breakdowns, maintenance issues, lower usage, delays, or operational underperformance.',
-      'These assets may also be affected by policy changes, power availability, site access, environmental conditions, or changes in technology adoption.',
+      'Participation through INVESTYZ does not create any ownership rights, equity interest, or legal title in any underlying asset unless explicitly stated in a separate legally binding agreement.',
+      'Users may only receive contractual or economic exposure, subject to platform terms.',
     ],
   },
   {
-    title: '4. Regulatory And Compliance Risks',
+    title: '4. Dispute Resolution',
     content: [
-      'Laws and regulations affecting digital platforms, asset-backed participation, payments, taxation, and KYC may change over time.',
-      'Such changes may affect platform availability, user eligibility, transaction timing, or expected returns.',
+      'Amicable Resolution and Mediation: In the event of any dispute, controversy, or claim arising out of or in connection with the use of the platform, participation in any opportunity, or these terms ("Dispute"), the parties shall first attempt to resolve the Dispute amicably through mutual discussions. If the Dispute is not resolved within 15 (fifteen) days of such discussions, the parties shall refer the matter to mediation, to be conducted in accordance with mutually agreed mediation rules and procedures in India.',
+      'Arbitration: In the event that the Dispute remains unresolved through mediation within 30 (thirty) days from the date of reference to mediation, the Dispute shall be finally resolved by arbitration in accordance with the provisions of the Arbitration and Conciliation Act, 1996. The arbitration shall be conducted by a sole arbitrator, who shall be appointed through an institutional arbitration mechanism in India. The seat and venue of arbitration shall be in India, and the proceedings shall be conducted in the English language. The arbitral award shall be final and binding on the parties.',
     ],
   },
   {
-    title: '5. Liquidity And Exit Risks',
+    title: '5. User Eligibility and Compliance',
     content: [
-      'Some opportunities may have limited liquidity, restricted transferability, longer holding periods, or delayed exit options.',
-      'You may not be able to exit at the time, price, or method you prefer.',
+      'Users represent and warrant that they are legally competent to enter into binding agreements and are not prohibited under any applicable laws from participating.',
+      'Users shall comply with all applicable laws, including but not limited to tax laws, foreign exchange regulations, and anti-money laundering requirements.',
     ],
   },
   {
-    title: '6. Technology And Platform Risks',
+    title: '6. No Fiduciary Relationship',
     content: [
-      'Use of INVESTYZ may involve software issues, hosting outages, cybersecurity incidents, wallet problems, transaction failures, or internet disruptions.',
-      'No digital platform can guarantee uninterrupted service or complete protection from technical incidents.',
+      'Nothing on this platform shall be deemed to create any fiduciary, advisory, or client relationship between INVESTYZ and the user.',
     ],
   },
   {
-    title: '7. Third-Party Dependency Risks',
+    title: '7. Indemnification',
     content: [
-      'INVESTYZ may depend on payment processors, compliance vendors, cloud providers, partners, and asset operators.',
-      'Issues affecting those third parties may impact platform services, payouts, asset performance, or user experience.',
+      'Users agree to indemnify and hold harmless INVESTYZ and its affiliates from any claims, damages, liabilities, or expenses arising out of their use of the platform, violation of these terms, or breach of applicable laws.',
     ],
   },
   {
-    title: '8. Valuation And Information Risks',
+    title: '8. Platform Role',
     content: [
-      'Information on INVESTYZ may rely on assumptions, third-party data, or forward-looking estimates that can change over time.',
-      'Asset values and performance expectations may be revised and may not predict actual future results.',
+      'INVESTYZ operates as a technology platform facilitating access to opportunities and does not act as an issuer, broker, dealer, or financial intermediary unless expressly stated.',
     ],
   },
   {
-    title: '9. No Personal Advice',
+    title: '9. Refund, Cancellation, and Replacement Policy',
     content: [
-      'Nothing on INVESTYZ should be treated as personalized investment, legal, tax, or accounting advice.',
-      'Users should consult qualified advisors before making financial or legal decisions.',
+      'All transactions on INVESTYZ are final once completed. Users are responsible for verifying all details before confirming participation.',
+      'Any refund, cancellation, or replacement requests must be submitted in accordance with the platform terms and applicable laws. Users should review these terms carefully before participating.',
     ],
   },
   {
-    title: '10. User Responsibility',
+    title: '10. Tax Disclaimer',
     content: [
-      'By using INVESTYZ, you accept responsibility for your own decisions, due diligence, and risk assessment.',
-      'You should not participate using funds you cannot afford to lose or keep locked up for a period of time.',
-    ],
-  },
-  {
-    title: '11. Forward-Looking Statements',
-    content: [
-      'Some content on INVESTYZ may include forward-looking statements about growth, adoption, revenue, performance, or future product direction.',
-      'These statements are uncertain and should not be treated as guarantees of future performance.',
+      'Users are solely responsible for determining and complying with their tax obligations arising from participation on the platform.',
+      'INVESTYZ does not provide tax advice and users should consult qualified tax professionals regarding their specific tax circumstances.',
     ],
   },
 ];
