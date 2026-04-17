@@ -13,6 +13,7 @@ const env = {
   // Database
   MONGO_URL: process.env.MONGO_URL || 'mongodb://localhost:27017',
   DB_NAME: process.env.DB_NAME || 'test_database',
+  DATABASE_URL: process.env.DATABASE_URL || '',
   
   // CORS
   CORS_ORIGINS: process.env.CORS_ORIGINS || '*',
