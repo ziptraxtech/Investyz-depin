@@ -151,7 +151,7 @@ const RiskDisclaimerPage = () => {
                   </div>
                   <div>
                     <p className="text-sm uppercase tracking-[0.24em] text-primary/80">
-                      Contact Placeholder
+                      Contact Us
                     </p>
                     <h2 className="text-2xl md:text-3xl font-semibold font-['Outfit'] mt-2 mb-4">
                       Questions about platform risks
@@ -161,6 +161,9 @@ const RiskDisclaimerPage = () => {
                         For any questions regarding this Risk Disclaimer, please contact the
                         INVESTYZ team through the official contact channels available on the
                         website.
+                      </p>
+                      <p className="text-foreground font-medium">
+                        Email: investyzasset@gmail.com
                       </p>
                       <p className="text-foreground font-medium">Website: https://www.investyz.com/</p>
                     </div>

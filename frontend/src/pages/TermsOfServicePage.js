@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent } from '../components/ui/card';
-import { Scale } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 const termsSections = [
   {
@@ -171,11 +171,11 @@ const TermsOfServicePage = () => {
               <CardContent className="p-7 md:p-8">
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-2xl bg-primary/10">
-                    <Scale className="h-6 w-6 text-primary" />
+                    <Mail className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm uppercase tracking-[0.24em] text-primary/80">
-                      Contact Placeholder
+                      Contact Us
                     </p>
                     <h2 className="text-2xl md:text-3xl font-semibold font-['Outfit'] mt-2 mb-4">
                       Questions about these terms
@@ -185,6 +185,9 @@ const TermsOfServicePage = () => {
                         For any questions regarding these Terms of Service, please contact the
                         INVESTYZ team through the official contact channels available on the
                         website.
+                      </p>
+                      <p className="text-foreground font-medium">
+                        Email: investyzasset@gmail.com
                       </p>
                       <p className="text-foreground font-medium">Website: https://www.investyz.com/</p>
                     </div>
