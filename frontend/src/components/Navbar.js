@@ -1,0 +1,275 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X, Wallet, LogOut, User, ChevronDown, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Button } from '../components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { useAuth } from '../context/AuthContext';
+import { useWallet } from '../context/WalletContext';
+import WalletModal from './WalletModal';
+import BrandLogo from './BrandLogo';
+
+const Navbar = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { user, logout } = useAuth();
+  const { connected, publicKey, disconnect } = useWallet();
+  const { resolvedTheme, setTheme } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const navLinks = [
+    { name: 'About', href: '/about' },
+    { name: 'Segments', href: '/segments' },
+    { name: 'How It Works', href: '/#how-it-works' },
+    { name: 'Blog', href: '/blog' },
+  ];
+
+  const isActive = (path) => location.pathname === path;
+
+  const truncateAddress = (address) => {
+    if (!address) return '';
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDarkTheme = mounted ? resolvedTheme !== 'light' : true;
+
+  const toggleTheme = () => {
+    setTheme(isDarkTheme ? 'light' : 'dark');
+  };
+
+  return (
+    <>
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-light dark:glass-dark">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <BrandLogo frameClassName="h-9 w-[150px]" />
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className={`text-sm font-medium transition-colors hover:text-foreground ${
+                    isActive(link.href) ? 'text-primary' : 'text-foreground/75'
+                  }`}
+                  data-testid={`nav-${link.name.toLowerCase().replace(' ', '-')}`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="rounded-full border border-border/70 bg-white/95 text-foreground shadow-sm hover:bg-accent/60 dark:bg-background/75"
+                data-testid="theme-toggle-btn"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkTheme ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
+
+              {/* Wallet Button */}
+              {connected ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWalletModalOpen(true)}
+                  className="rounded-full gap-2 border-border/70 bg-white/95 text-foreground hover:bg-accent/60 dark:bg-background/75"
+                  data-testid="wallet-connected-btn"
+                >
+                  <Wallet className="h-4 w-4" />
+                  {truncateAddress(publicKey)}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWalletModalOpen(true)}
+                  className="rounded-full gap-2 border-border/70 bg-white/95 text-foreground hover:bg-accent/60 dark:bg-background/75"
+                  data-testid="connect-wallet-btn"
+                >
+                  <Wallet className="h-4 w-4" />
+                  Connect Wallet
+                </Button>
+              )}
+
+              {/* Auth Button */}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2" data-testid="user-menu-btn">
+                      {user.picture ? (
+                        <img src={user.picture} alt="" className="h-6 w-6 rounded-full" />
+                      ) : (
+                        <User className="h-4 w-4" />
+                      )}
+                      <span className="hidden lg:inline">{user.name?.split(' ')[0]}</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate('/dashboard')} data-testid="menu-dashboard">
+                      Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/profile')} data-testid="menu-profile">
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="text-destructive" data-testid="menu-logout">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/login')}
+                    className="rounded-full px-5 border-border/70 bg-white/95 text-foreground hover:bg-accent/60 dark:bg-background/75"
+                    data-testid="login-btn"
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/signup')}
+                    className="rounded-full px-5 shadow-md hover:shadow-lg transition-all"
+                    data-testid="signup-btn"
+                  >
+                    Signup
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="rounded-full border border-border/70 bg-white/95 text-foreground shadow-sm hover:bg-accent/60 dark:bg-background/75"
+                data-testid="mobile-theme-toggle-btn"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkTheme ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
+              <button
+                className="p-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                data-testid="mobile-menu-btn"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl">
+            <div className="px-4 py-4 space-y-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className="block py-2 text-sm font-medium text-muted-foreground hover:text-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.name}
+                </Link>
+              ))}
+              <div className="pt-4 space-y-3 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full gap-2"
+                  onClick={() => {
+                    setWalletModalOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Wallet className="h-4 w-4" />
+                  {connected ? truncateAddress(publicKey) : 'Connect Wallet'}
+                </Button>
+                {user ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/dashboard');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-destructive"
+                      onClick={() => {
+                        logout();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full"
+                      onClick={() => {
+                        navigate('/login');
+                        setMobileMenuOpen(false);
+                      }}
+                      data-testid="mobile-login-btn"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      className="w-full rounded-full"
+                      onClick={() => {
+                        navigate('/signup');
+                        setMobileMenuOpen(false);
+                      }}
+                      data-testid="mobile-signup-btn"
+                    >
+                      Signup
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      <WalletModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
+    </>
+  );
+};
+
+export default Navbar;
