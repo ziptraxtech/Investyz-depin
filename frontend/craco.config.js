@@ -1,5 +1,6 @@
 // craco.config.js
 const path = require("path");
+const webpack = require("webpack");
 require("dotenv").config();
 
 // Check if we're in development/preview mode (not production build)
@@ -65,6 +66,15 @@ const webpackConfig = {
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
+
+      // Expose Clerk publishable key from environment at build time.
+      // This allows Vercel build envs to provide CLERK_PUBLISHABLE_KEY without requiring the CRA prefix.
+      webpackConfig.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env.CLERK_PUBLISHABLE_KEY': JSON.stringify(process.env.CLERK_PUBLISHABLE_KEY || ''),
+        })
+      );
+
       return webpackConfig;
     },
   },
