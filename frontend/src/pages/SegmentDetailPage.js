@@ -203,6 +203,12 @@ const SegmentDetailPage = () => {
       return;
     }
 
+    if (!user?.isKycVerified || user?.kycStatus !== 'VERIFIED') {
+      toast.info('Complete KYC before investing');
+      navigate('/kyc');
+      return;
+    }
+
     // If no backend, show demo message
     if (!API_URL || API_URL === '') {
       toast.info('Demo mode: Backend required for actual investments');
@@ -228,7 +234,12 @@ const SegmentDetailPage = () => {
         window.location.href = data.url;
       } else {
         const error = await response.json();
-        toast.error(error.detail || 'Failed to create checkout session');
+        if (response.status === 403) {
+          toast.info('KYC verification is required before investing');
+          navigate('/kyc');
+          return;
+        }
+        toast.error(error.message || error.detail || 'Failed to create checkout session');
       }
     } catch (error) {
       toast.error('Failed to initiate payment');

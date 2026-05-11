@@ -52,6 +52,9 @@ const formatSegmentLabel = (value, fallback = 'Investment') =>
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+const getInvestmentPath = (user) =>
+  user?.isKycVerified && user?.kycStatus === 'VERIFIED' ? '/segments' : '/kyc';
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { connected, publicKey } = useWallet();
@@ -172,7 +175,7 @@ const Dashboard = () => {
                 {publicKey?.slice(0, 4)}...{publicKey?.slice(-4)}
               </Button>
             )}
-            <Button onClick={() => navigate('/segments')} data-testid="new-investment-btn">
+            <Button onClick={() => navigate(getInvestmentPath(user))} data-testid="new-investment-btn">
               New Investment
             </Button>
           </div>
@@ -271,7 +274,7 @@ const Dashboard = () => {
         <Card data-testid="active-investments-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-['Outfit']">Active Investments</CardTitle>
-            <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate('/segments')}>
+            <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate(getInvestmentPath(user))}>
               View All <ChevronRight className="h-4 w-4" />
             </Button>
           </CardHeader>
@@ -325,7 +328,7 @@ const Dashboard = () => {
                 <p className="text-muted-foreground mb-4">
                   Start investing in sustainable infrastructure today
                 </p>
-                <Button onClick={() => navigate('/segments')} data-testid="start-investing-btn">
+                <Button onClick={() => navigate(getInvestmentPath(user))} data-testid="start-investing-btn">
                   Explore Segments
                 </Button>
               </div>

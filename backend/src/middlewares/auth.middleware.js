@@ -5,6 +5,7 @@
 const { User, UserSession } = require('../models');
 const { sendError } = require('../utils/response');
 const logger = require('../utils/logger');
+const jwt = require('../utils/jwt');
 
 /**
  * Extract session token from request
@@ -35,21 +36,23 @@ const requireAuth = async (req, res, next) => {
       return sendError(res, 'Authentication required', 401);
     }
     
-    // Find session
-    const session = await UserSession.findOne({ session_token: sessionToken });
-    
-    if (!session) {
-      return sendError(res, 'Invalid session', 401);
+    let userId = null;
+    let session = null;
+
+    if (sessionToken.startsWith('sess_')) {
+      session = await UserSession.findOne({ session_token: sessionToken });
+      if (!session) return sendError(res, 'Invalid session', 401);
+      if (new Date(session.expires_at) < new Date()) {
+        await UserSession.deleteOne({ session_token: sessionToken });
+        return sendError(res, 'Session expired', 401);
+      }
+      userId = session.user_id;
+    } else {
+      const payload = jwt.verify(sessionToken);
+      userId = payload.sub;
     }
-    
-    // Check expiry
-    if (new Date(session.expires_at) < new Date()) {
-      await UserSession.deleteOne({ session_token: sessionToken });
-      return sendError(res, 'Session expired', 401);
-    }
-    
-    // Find user
-    const user = await User.findOne({ user_id: session.user_id });
+
+    const user = await User.findOne({ user_id: userId });
     
     if (!user) {
       return sendError(res, 'User not found', 401);
@@ -64,6 +67,32 @@ const requireAuth = async (req, res, next) => {
     logger.error('Auth middleware error:', error);
     return sendError(res, 'Authentication failed', 500);
   }
+};
+
+const requireVerifiedContact = (req, res, next) => {
+  if (!req.user?.email_verified || !req.user?.phone_verified) {
+    return sendError(res, 'Email and phone verification are required before KYC', 403, {
+      email_verified: !!req.user?.email_verified,
+      phone_verified: !!req.user?.phone_verified,
+    });
+  }
+  return next();
+};
+
+const requireKycVerified = (req, res, next) => {
+  if (!req.user?.isKycVerified || req.user?.kycStatus !== 'VERIFIED') {
+    return sendError(res, 'KYC verification required before investing', 403, {
+      kycStatus: req.user?.kycStatus || 'NOT_STARTED',
+    });
+  }
+  return next();
+};
+
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return sendError(res, 'Admin access required', 403);
+  }
+  return next();
 };
 
 /**
@@ -95,5 +124,8 @@ const optionalAuth = async (req, res, next) => {
 module.exports = {
   requireAuth,
   optionalAuth,
+  requireVerifiedContact,
+  requireKycVerified,
+  requireAdmin,
   extractToken,
 };

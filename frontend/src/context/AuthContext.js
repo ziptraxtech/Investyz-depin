@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClerk, useUser } from '@clerk/clerk-react';
+import apiClient, { unwrap } from '../lib/apiClient';
 
 const AuthContext = createContext(null);
 const getClerkPublishableKey = () => {
@@ -101,6 +102,13 @@ const ClerkAuthProvider = ({ children }) => {
         signupWithEmail: signup,
         loginWithEmail: login,
         loginWithGoogle: login,
+        requestOtp: async () => {
+          throw new Error('OTP verification is handled by the platform auth flow');
+        },
+        verifyOtp: async () => {
+          throw new Error('OTP verification is handled by the platform auth flow');
+        },
+        updateProfile: async () => user,
         logout,
         checkAuth: async () => user,
         connectWallet,
@@ -114,22 +122,41 @@ const ClerkAuthProvider = ({ children }) => {
 const LocalAuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [walletProfile, setWalletProfile] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const user = useMemo(() => {
-    if (!walletProfile) return null;
+    if (!account) return null;
 
     return {
-      user_id: '',
-      id: '',
-      name: '',
-      email: '',
+      ...account,
+      id: account.user_id,
       picture: '',
       auth_provider: 'local',
-      wallet_address: walletProfile.wallet_address || '',
-      wallet_type: walletProfile.wallet_type || '',
-      wallet_chain_id: walletProfile.wallet_chain_id || '',
+      wallet_address: walletProfile?.wallet_address || account.wallet_address || '',
+      wallet_type: walletProfile?.wallet_type || account.wallet_type || '',
+      wallet_chain_id: walletProfile?.wallet_chain_id || account.wallet_chain_id || '',
     };
-  }, [walletProfile]);
+  }, [account, walletProfile]);
+
+  React.useEffect(() => {
+    const restore = async () => {
+      if (!localStorage.getItem('investyz_access_token')) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = unwrap(await apiClient.get('/api/auth/me'));
+        setAccount(data);
+      } catch {
+        localStorage.removeItem('investyz_access_token');
+      } finally {
+        setLoading(false);
+      }
+    };
+    restore();
+  }, []);
 
   const login = () => {
     navigate('/login');
@@ -140,9 +167,54 @@ const LocalAuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    try {
+      await apiClient.post('/api/auth/logout');
+    } catch {
+      // Local cleanup still matters if the server session already expired.
+    }
+    localStorage.removeItem('investyz_access_token');
+    setAccount(null);
     setWalletProfile(null);
     navigate('/');
   };
+
+  const storeAuthResult = (payload) => {
+    if (payload.access_token) {
+      localStorage.setItem('investyz_access_token', payload.access_token);
+    }
+    setAccount(payload.user);
+    return payload.user;
+  };
+
+  const signupWithEmail = async ({ name, email, phone, password }) => {
+    const data = unwrap(await apiClient.post('/api/auth/signup', { name, email, phone, password }));
+    return storeAuthResult(data);
+  };
+
+  const loginWithEmail = async ({ email, password }) => {
+    const data = unwrap(await apiClient.post('/api/auth/login', { email, password }));
+    return storeAuthResult(data);
+  };
+
+  const updateProfile = useCallback(async (updates) => {
+    const data = unwrap(await apiClient.patch('/api/auth/profile', updates));
+    setAccount(data);
+    return data;
+  }, []);
+
+  const requestOtp = useCallback(async (channel, values = {}) => unwrap(await apiClient.post('/api/auth/otp/request', { channel, ...values })), []);
+
+  const verifyOtp = useCallback(async (channel, otp) => {
+    const data = unwrap(await apiClient.post('/api/auth/otp/verify', { channel, otp }));
+    setAccount(data);
+    return data;
+  }, []);
+
+  const checkAuth = useCallback(async () => {
+    const data = unwrap(await apiClient.get('/api/auth/me'));
+    setAccount(data);
+    return data;
+  }, []);
 
   const connectWallet = (walletAddress, walletType = 'metamask', walletChainId = '137') => {
     setWalletProfile({
@@ -157,17 +229,20 @@ const LocalAuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: false,
-        setUser: () => {},
-        loading: false,
+        isAuthenticated: !!user,
+        setUser: setAccount,
+        loading,
         login,
         signup,
         startExternalGoogleAuth: login,
-        signupWithEmail: signup,
-        loginWithEmail: login,
+        signupWithEmail,
+        loginWithEmail,
         loginWithGoogle: login,
+        requestOtp,
+        verifyOtp,
+        updateProfile,
         logout,
-        checkAuth: async () => null,
+        checkAuth,
         connectWallet,
       }}
     >

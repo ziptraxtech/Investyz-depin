@@ -19,6 +19,9 @@ const SegmentDetailPage = lazy(() => import('./pages/SegmentDetailPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
+const KycVerificationPage = lazy(() => import('./pages/KycVerificationPage'));
+const KycResultPage = lazy(() => import('./pages/KycResultPage'));
+const AdminKycPage = lazy(() => import('./pages/AdminKycPage'));
 const PaymentSuccess = lazy(() =>
   import('./pages/PaymentPages').then((module) => ({ default: module.PaymentSuccess }))
 );
@@ -97,6 +100,17 @@ const AppRouter = () => {
         <Route path="/segments/:segmentId" element={<SegmentDetailPage />} />
         <Route path="/login/*" element={<AuthPage mode="login" />} />
         <Route path="/signup/*" element={<AuthPage mode="signup" />} />
+        <Route path="/kyc" element={<KycVerificationPage />} />
+        <Route path="/kyc/success" element={<KycResultPage status="success" />} />
+        <Route path="/kyc/failed" element={<KycResultPage status="failed" />} />
+        <Route
+          path="/admin/kyc"
+          element={
+            <ProtectedRoute>
+              <AdminKycPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={

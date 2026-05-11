@@ -43,7 +43,7 @@ const LANDING_SEGMENT_PRIORITY = {
 };
 
 const LandingPage = () => {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [segments, setSegments] = useState([]);
   const [featureIndex, setFeatureIndex] = useState(0);
@@ -296,6 +296,10 @@ const LandingPage = () => {
     return `$${(value / 1000).toFixed(0)}K`;
   };
 
+  const handleStartInvesting = () => {
+    navigate('/kyc');
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -340,7 +344,7 @@ const LandingPage = () => {
               <Button
                 size="lg"
                 className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-colors"
-                onClick={() => user ? navigate('/dashboard') : login()}
+                onClick={handleStartInvesting}
                 data-testid="hero-cta-primary"
               >
                 Start Investing
@@ -710,7 +714,7 @@ const LandingPage = () => {
             <Button
               size="lg"
               className="rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-colors"
-              onClick={() => user ? navigate('/dashboard') : login()}
+              onClick={handleStartInvesting}
               data-testid="how-it-works-cta"
             >
               Get Started Now

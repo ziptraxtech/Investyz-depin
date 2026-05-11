@@ -12,6 +12,7 @@ const segmentsRoutes = require('./segments.routes');
 const investmentRoutes = require('./investment.routes');
 const paymentRoutes = require('./payment.routes');
 const portfolioRoutes = require('./portfolio.routes');
+const kycRoutes = require('./kyc.routes');
 
 // Health check
 router.get('/', (req, res) => {
@@ -33,6 +34,7 @@ router.use('/', segmentsRoutes); // /segments, /plans, /calculator
 router.use('/investments', investmentRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/portfolio', portfolioRoutes);
+router.use('/kyc', kycRoutes);
 
 // Legacy route support (for frontend compatibility)
 router.post('/auth/connect-wallet', require('../middlewares/auth.middleware').requireAuth, 

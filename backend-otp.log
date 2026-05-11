@@ -1,0 +1,41 @@
+
+> investyz-backend@1.0.0 dev
+> node src/server.js
+
+[32m[INFO][0m 2026-05-11T14:42:52.535Z - MongoDB connected: test_database
+[32m[INFO][0m 2026-05-11T14:42:52.558Z - 🚀 Server running on port 8001
+[32m[INFO][0m 2026-05-11T14:42:52.559Z - 📍 Environment: development
+[32m[INFO][0m 2026-05-11T14:42:52.560Z - 🔗 API URL: http://localhost:8001/api
+[0mGET /api/health [32m200[0m 2.234 ms - 20[0m
+[32m[INFO][0m 2026-05-11T14:43:15.475Z - User signed up: otp-test-52ad465b@example.com
+[0mPOST /api/auth/signup [32m200[0m 192.028 ms - 1017[0m
+[32m[INFO][0m 2026-05-11T14:43:15.646Z - email OTP generated for user user_59dfbeabe5cf (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 104.233 ms - 176[0m
+[0mPOST /api/auth/otp/verify [32m200[0m 102.396 ms - 695[0m
+[0mPATCH /api/auth/profile [32m200[0m 101.114 ms - 696[0m
+[32m[INFO][0m 2026-05-11T14:43:15.961Z - phone OTP generated for user user_59dfbeabe5cf (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 101.589 ms - 157[0m
+[0mPOST /api/auth/otp/verify [32m200[0m 113.375 ms - 694[0m
+[0mGET /api/auth/me [36m304[0m 105.810 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 92.433 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 209.902 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 84.721 ms - -[0m
+[32m[INFO][0m 2026-05-11T14:48:02.302Z - email OTP generated for user user_1e8bd2f5ef79 (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 190.030 ms - 175[0m
+[0mPOST /api/auth/otp/verify [32m200[0m 153.863 ms - 707[0m
+[0mGET /api/kyc/status [32m200[0m 470.794 ms - 746[0m
+[0mGET /api/auth/me [32m200[0m 81.017 ms - 707[0m
+[0mPATCH /api/auth/profile [32m200[0m 172.824 ms - 707[0m
+[0mGET /api/auth/me [32m200[0m 89.202 ms - 706[0m
+[32m[INFO][0m 2026-05-11T14:48:17.222Z - phone OTP generated for user user_1e8bd2f5ef79 (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 161.820 ms - 157[0m
+[0mGET /api/auth/me [32m200[0m 77.504 ms - 728[0m
+[0mPOST /api/auth/otp/verify [32m200[0m 130.247 ms - 705[0m
+[0mGET /api/kyc/status [32m200[0m 159.444 ms - 744[0m
+[0mGET /api/auth/me [32m200[0m 64.779 ms - 705[0m
+[0mPOST /api/kyc/pan/verify [32m200[0m 300.276 ms - 258[0m
+[0mGET /api/kyc/status [32m200[0m 161.306 ms - 1990[0m
+[0mGET /api/auth/me [32m200[0m 63.442 ms - 769[0m
+[0mGET /api/segments [32m200[0m 0.719 ms - 2977[0m
+[0mGET /api/segments [32m200[0m 2.274 ms - 2977[0m
+[0mGET /api/health [32m200[0m 2.058 ms - 20[0m

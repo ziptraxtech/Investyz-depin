@@ -65,6 +65,25 @@ npm install
 npm run dev
 ```
 
+### Local KYC Testing With ngrok
+
+For Cashfree DigiLocker testing, you need two things:
+
+1. A public HTTPS callback URL for the browser redirect.
+2. A stable outbound IP for the backend request to Cashfree.
+
+Recommended local setup:
+
+```env
+PORT=8001
+NODE_ENV=development
+CORS_ORIGINS=http://localhost:3000,https://YOUR-FRONTEND-NGROK-URL.ngrok-free.dev
+CASHFREE_REDIRECT_URL=https://YOUR-FRONTEND-NGROK-URL.ngrok-free.dev/kyc
+REACT_APP_BACKEND_URL=https://YOUR-BACKEND-NGROK-URL.ngrok-free.dev
+```
+
+If you are running the backend from your laptop, Cashfree may still reject the request unless the backend's public IP is whitelisted in Secure ID. ngrok helps with HTTPS redirect URLs, but it does not change the backend's outbound IP.
+
 ### Environment Variables
 
 ```env

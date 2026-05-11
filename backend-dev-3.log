@@ -1,0 +1,15 @@
+
+> investyz-backend@1.0.0 dev
+> node src/server.js
+
+[32m[INFO][0m 2026-05-11T14:26:17.129Z - MongoDB connected: test_database
+[32m[INFO][0m 2026-05-11T14:26:17.147Z - 🚀 Server running on port 8001
+[32m[INFO][0m 2026-05-11T14:26:17.148Z - 📍 Environment: development
+[32m[INFO][0m 2026-05-11T14:26:17.149Z - 🔗 API URL: http://localhost:8001/api
+[0mGET /api/health [32m200[0m 2.856 ms - 20[0m
+[0mPOST /api/auth/signup [31m500[0m 144.895 ms - 43[0m
+[0mPOST /api/auth/otp/request [33m401[0m 0.752 ms - 53[0m
+[0mPOST /api/auth/otp/verify [33m401[0m 0.443 ms - 53[0m
+[0mPOST /api/auth/otp/request [33m401[0m 0.279 ms - 53[0m
+[0mPOST /api/auth/otp/verify [33m401[0m 0.260 ms - 53[0m
+[0mPOST /api/kyc/pan/verify [33m401[0m 0.863 ms - 53[0m

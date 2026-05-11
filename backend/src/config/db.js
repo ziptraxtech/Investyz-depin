@@ -6,9 +6,26 @@ const mongoose = require('mongoose');
 const env = require('./env');
 const logger = require('../utils/logger');
 
+const buildMongoUri = () => {
+  if (env.MONGODB_URI) return env.MONGODB_URI;
+
+  try {
+    const parsed = new URL(env.MONGO_URL);
+    const hasDatabasePath = parsed.pathname && parsed.pathname !== '/';
+    if (hasDatabasePath) return env.MONGO_URL;
+
+    parsed.pathname = `/${env.DB_NAME}`;
+    return parsed.toString();
+  } catch {
+    const [base, query] = env.MONGO_URL.split('?');
+    const normalizedBase = base.replace(/\/+$/, '');
+    return `${normalizedBase}/${env.DB_NAME}${query ? `?${query}` : ''}`;
+  }
+};
+
 const connectDB = async () => {
   try {
-    const mongoURI = `${env.MONGO_URL}/${env.DB_NAME}`;
+    const mongoURI = buildMongoUri();
     
     const options = {
       maxPoolSize: 10,

@@ -1,0 +1,54 @@
+
+> investyz-backend@1.0.0 dev
+> node src/server.js
+
+[32m[INFO][0m 2026-05-11T14:28:30.546Z - MongoDB connected: test_database
+[32m[INFO][0m 2026-05-11T14:28:30.566Z - 🚀 Server running on port 8001
+[32m[INFO][0m 2026-05-11T14:28:30.567Z - 📍 Environment: development
+[32m[INFO][0m 2026-05-11T14:28:30.568Z - 🔗 API URL: http://localhost:8001/api
+[0mGET /api/health [32m200[0m 4.500 ms - 20[0m
+[32m[INFO][0m 2026-05-11T14:28:49.704Z - User signed up: kyc-test-f29bdd7b@example.com
+[0mPOST /api/auth/signup [32m200[0m 172.176 ms - 1017[0m
+[32m[INFO][0m 2026-05-11T14:28:49.849Z - email OTP generated for user user_6e3d547a073d (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 92.653 ms - 130[0m
+[0mPOST /api/auth/otp/verify [32m200[0m 84.707 ms - 695[0m
+[32m[INFO][0m 2026-05-11T14:28:50.025Z - phone OTP generated for user user_6e3d547a073d (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 85.521 ms - 130[0m
+[0mPOST /api/auth/otp/verify [32m200[0m 89.678 ms - 694[0m
+[0mPOST /api/kyc/pan/verify [32m200[0m 233.263 ms - 258[0m
+[32m[INFO][0m 2026-05-11T14:29:43.591Z - User signed up: bhargavchaturvedi8@gmail.com
+[0mPOST /api/auth/signup [32m200[0m 145.402 ms - 1027[0m
+[0mGET /api/auth/me [32m200[0m 292.975 ms - 708[0m
+[0mGET /api/auth/me [36m304[0m 149.814 ms - -[0m
+[0mGET /api/investments [32m200[0m 116.408 ms - 60[0m
+[0mGET /api/portfolio/stats [32m200[0m 122.301 ms - 225[0m
+[0mGET /api/investments [36m304[0m 144.056 ms - -[0m
+[0mGET /api/portfolio/stats [36m304[0m 118.705 ms - -[0m
+[0mGET /api/kyc/status [32m200[0m 145.375 ms - 747[0m
+[0mGET /api/auth/me [36m304[0m 65.438 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 135.454 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 53.463 ms - -[0m
+[32m[INFO][0m 2026-05-11T14:38:56.073Z - email OTP generated for user user_1e8bd2f5ef79 (mock: 123456)
+[0mPOST /api/auth/otp/request [32m200[0m 132.220 ms - 130[0m
+[0mPOST /api/auth/otp/verify [33m400[0m 82.195 ms - 41[0m
+[0mGET /api/portfolio/stats [36m304[0m 82.171 ms - -[0m
+[0mGET /api/investments [36m304[0m 117.956 ms - -[0m
+[0mGET /api/portfolio/stats [36m304[0m 92.848 ms - -[0m
+[0mGET /api/investments [36m304[0m 116.363 ms - -[0m
+[0mGET /api/kyc/status [32m200[0m 183.478 ms - 769[0m
+[0mGET /api/auth/me [32m200[0m 60.992 ms - 730[0m
+[0mGET /api/kyc/status [36m304[0m 170.880 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 309.666 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 69.867 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 68.525 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 136.737 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 53.275 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 55.854 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 129.438 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 62.667 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 130.621 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 51.059 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 145.109 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 68.170 ms - -[0m
+[0mGET /api/kyc/status [36m304[0m 149.158 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 49.947 ms - -[0m

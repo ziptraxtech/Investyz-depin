@@ -9,8 +9,13 @@ const { User, UserSession } = require('../models');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../utils/logger');
 const env = require('../config/env');
+const jwt = require('../utils/jwt');
+const { generateOtp, hashValue } = require('../utils/security');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+const normalizePhone = (phone) => String(phone || '').replace(/\D/g, '').slice(-10);
 
 const normalizeNameFromEmail = (email) => {
   const localPart = String(email || '').split('@')[0] || 'User';
@@ -38,6 +43,11 @@ const verifyPassword = (password, storedHash) => {
 const createSessionForUser = async (res, user) => {
   const sessionToken = `sess_${uuidv4().replace(/-/g, '')}`;
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const accessToken = jwt.sign({
+    sub: user.user_id,
+    email: user.email,
+    role: user.role,
+  });
 
   await UserSession.create({
     user_id: user.user_id,
@@ -53,7 +63,7 @@ const createSessionForUser = async (res, user) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return sessionToken;
+  return { sessionToken, accessToken };
 };
 
 /**
@@ -96,16 +106,18 @@ const createSession = async (req, res) => {
         name: userData.name,
         picture: userData.picture,
         auth_provider: 'emergent',
+        email_verified: true,
       });
     }
 
-    const sessionToken = await createSessionForUser(res, user);
+    const { sessionToken, accessToken } = await createSessionForUser(res, user);
     
     logger.info(`User logged in: ${user.email}`);
     
     return sendSuccess(res, {
       user: user.toJSON(),
       session_token: sessionToken,
+      access_token: accessToken,
     }, 'Login successful');
     
   } catch (error) {
@@ -125,15 +137,19 @@ const createSession = async (req, res) => {
  */
 const signupWithEmail = async (req, res) => {
   try {
-    const { name, email, password } = req.body || {};
+    const { name, email, phone, password } = req.body || {};
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedName = String(name || '').trim();
+    const normalizedPhone = normalizePhone(phone);
 
-    if (!normalizedEmail || !password) {
-      return sendError(res, 'email and password are required', 400);
+    if (!normalizedEmail || !password || !normalizedPhone) {
+      return sendError(res, 'name, email, phone and password are required', 400);
     }
     if (!EMAIL_REGEX.test(normalizedEmail)) {
       return sendError(res, 'Invalid email format', 400);
+    }
+    if (!PHONE_REGEX.test(normalizedPhone)) {
+      return sendError(res, 'Enter a valid 10 digit Indian mobile number', 400);
     }
     if (String(password).length < 8) {
       return sendError(res, 'Password must be at least 8 characters', 400);
@@ -147,15 +163,17 @@ const signupWithEmail = async (req, res) => {
     const user = await User.create({
       email: normalizedEmail,
       name: normalizedName || normalizeNameFromEmail(normalizedEmail),
+      phone: normalizedPhone,
       password_hash: createPasswordHash(String(password)),
       auth_provider: 'email',
     });
 
-    const sessionToken = await createSessionForUser(res, user);
+    const { sessionToken, accessToken } = await createSessionForUser(res, user);
     logger.info(`User signed up: ${user.email}`);
     return sendSuccess(res, {
       user: user.toJSON(),
       session_token: sessionToken,
+      access_token: accessToken,
     }, 'Signup successful');
   } catch (error) {
     logger.error('Signup error:', error.message);
@@ -185,11 +203,12 @@ const loginWithEmail = async (req, res) => {
       return sendError(res, 'Invalid credentials', 401);
     }
 
-    const sessionToken = await createSessionForUser(res, user);
+    const { sessionToken, accessToken } = await createSessionForUser(res, user);
     logger.info(`User logged in with email: ${user.email}`);
     return sendSuccess(res, {
       user: user.toJSON(),
       session_token: sessionToken,
+      access_token: accessToken,
     }, 'Login successful');
   } catch (error) {
     logger.error('Email login error:', error.message);
@@ -231,22 +250,25 @@ const loginWithGoogle = async (req, res) => {
         picture: tokenInfo.picture || null,
         auth_provider: 'google',
         google_sub: tokenInfo.sub || null,
+        email_verified: true,
       });
     } else {
       user.name = tokenInfo.name || user.name;
       user.picture = tokenInfo.picture || user.picture;
       user.google_sub = tokenInfo.sub || user.google_sub;
+      user.email_verified = true;
       if (!user.auth_provider) {
         user.auth_provider = 'google';
       }
       await user.save();
     }
 
-    const sessionToken = await createSessionForUser(res, user);
+    const { sessionToken, accessToken } = await createSessionForUser(res, user);
     logger.info(`User logged in with Google: ${user.email}`);
     return sendSuccess(res, {
       user: user.toJSON(),
       session_token: sessionToken,
+      access_token: accessToken,
     }, 'Google login successful');
   } catch (error) {
     logger.error('Google login error:', error.message);
@@ -260,6 +282,110 @@ const loginWithGoogle = async (req, res) => {
  */
 const getCurrentUser = async (req, res) => {
   return sendSuccess(res, req.user, 'User retrieved');
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id });
+    if (!user) return sendError(res, 'User not found', 404);
+
+    const nextName = String(req.body?.name || '').trim();
+    const nextPhone = normalizePhone(req.body?.phone);
+
+    if (nextName) {
+      user.name = nextName;
+    }
+
+    if (nextPhone) {
+      if (!PHONE_REGEX.test(nextPhone)) {
+        return sendError(res, 'Enter a valid 10 digit Indian mobile number', 400);
+      }
+      if (user.phone !== nextPhone) {
+        user.phone = nextPhone;
+        user.phone_verified = false;
+        user.phone_otp_hash = null;
+        user.phone_otp_expires_at = null;
+      }
+    }
+
+    await user.save();
+    return sendSuccess(res, user.toJSON(), 'Profile updated');
+  } catch (error) {
+    logger.error('Update profile error:', error.message);
+    return sendError(res, 'Failed to update profile', 500);
+  }
+};
+
+const requestOtp = async (req, res) => {
+  try {
+    const { channel, phone } = req.body || {};
+    if (!['email', 'phone'].includes(channel)) {
+      return sendError(res, 'channel must be email or phone', 400);
+    }
+
+    const user = await User.findOne({ user_id: req.user.user_id });
+    if (!user) return sendError(res, 'User not found', 404);
+
+    if (channel === 'phone') {
+      const normalizedPhone = normalizePhone(phone || user.phone);
+      if (!PHONE_REGEX.test(normalizedPhone)) {
+        return sendError(res, 'Add a valid 10 digit Indian mobile number before phone verification', 400);
+      }
+      if (user.phone !== normalizedPhone) {
+        user.phone = normalizedPhone;
+        user.phone_verified = false;
+      }
+    }
+
+    const otp = env.KYC_MOCK_MODE ? '123456' : generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    user[`${channel}_otp_hash`] = hashValue(otp);
+    user[`${channel}_otp_expires_at`] = expiresAt;
+    await user.save();
+
+    logger.info(`${channel} OTP generated for user ${user.user_id}${env.KYC_MOCK_MODE ? ' (mock: 123456)' : ''}`);
+    return sendSuccess(res, {
+      channel,
+      destination: channel === 'email' ? user.email : `******${user.phone.slice(-4)}`,
+      expires_at: expiresAt,
+      mock_otp: env.KYC_MOCK_MODE ? otp : undefined,
+    }, `${channel} OTP sent`);
+  } catch (error) {
+    logger.error('Request OTP error:', error.message);
+    return sendError(res, 'Failed to request OTP', 500);
+  }
+};
+
+const verifyOtp = async (req, res) => {
+  try {
+    const { channel, otp } = req.body || {};
+    if (!['email', 'phone'].includes(channel) || !otp) {
+      return sendError(res, 'channel and otp are required', 400);
+    }
+
+    const user = await User.findOne({ user_id: req.user.user_id });
+    if (!user) return sendError(res, 'User not found', 404);
+
+    const hash = user[`${channel}_otp_hash`];
+    const expiresAt = user[`${channel}_otp_expires_at`];
+    if (!hash || !expiresAt || new Date(expiresAt) < new Date()) {
+      return sendError(res, 'OTP expired. Request a new code.', 400);
+    }
+    if (hashValue(String(otp)) !== hash) {
+      return sendError(res, 'Invalid OTP', 400);
+    }
+
+    user[`${channel}_verified`] = true;
+    user[`${channel}_otp_hash`] = null;
+    user[`${channel}_otp_expires_at`] = null;
+    await user.save();
+
+    return sendSuccess(res, user.toJSON(), `${channel} verified`);
+  } catch (error) {
+    logger.error('Verify OTP error:', error.message);
+    return sendError(res, 'Failed to verify OTP', 500);
+  }
 };
 
 /**
@@ -289,5 +415,8 @@ module.exports = {
   loginWithEmail,
   loginWithGoogle,
   getCurrentUser,
+  updateProfile,
+  requestOtp,
+  verifyOtp,
   logout,
 };

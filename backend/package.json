@@ -4,7 +4,6 @@
   "description": "Investyz Web3 DePIN Investment Platform - Node.js Backend",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
     "dev": "node src/server.js",
     "test": "jest"
   },

@@ -15,6 +15,9 @@ router.post('/google', asyncHandler(authController.loginWithGoogle));
 
 // Protected routes
 router.get('/me', requireAuth, asyncHandler(authController.getCurrentUser));
+router.patch('/profile', requireAuth, asyncHandler(authController.updateProfile));
+router.post('/otp/request', requireAuth, asyncHandler(authController.requestOtp));
+router.post('/otp/verify', requireAuth, asyncHandler(authController.verifyOtp));
 router.post('/logout', requireAuth, asyncHandler(authController.logout));
 
 module.exports = router;

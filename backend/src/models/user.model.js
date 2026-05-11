@@ -20,6 +20,12 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
+  phone: {
+    type: String,
+    default: null,
+    trim: true,
+    index: true,
+  },
   name: {
     type: String,
     required: true,
@@ -61,6 +67,75 @@ const userSchema = new mongoose.Schema({
     enum: Object.values(ROLES),
     default: ROLES.USER,
   },
+  email_verified: {
+    type: Boolean,
+    default: false,
+  },
+  phone_verified: {
+    type: Boolean,
+    default: false,
+  },
+  email_otp_hash: {
+    type: String,
+    default: null,
+  },
+  email_otp_expires_at: {
+    type: Date,
+    default: null,
+  },
+  phone_otp_hash: {
+    type: String,
+    default: null,
+  },
+  phone_otp_expires_at: {
+    type: Date,
+    default: null,
+  },
+  isKycVerified: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  kycMethod: {
+    type: String,
+    enum: ['PAN', 'DIGILOCKER', null],
+    default: null,
+  },
+  panNumber: {
+    type: String,
+    default: null,
+  },
+  aadhaarMasked: {
+    type: String,
+    default: null,
+  },
+  digilockerVerified: {
+    type: Boolean,
+    default: false,
+  },
+  kycStatus: {
+    type: String,
+    enum: ['NOT_STARTED', 'PENDING', 'VERIFIED', 'REJECTED'],
+    default: 'NOT_STARTED',
+    index: true,
+  },
+  kycSubmittedAt: {
+    type: Date,
+    default: null,
+  },
+  verificationReferenceId: {
+    type: String,
+    default: null,
+    index: true,
+  },
+  kycVerifiedName: {
+    type: String,
+    default: null,
+  },
+  kycDob: {
+    type: String,
+    default: null,
+  },
   created_at: {
     type: Date,
     default: Date.now,
@@ -76,13 +151,16 @@ const userSchema = new mongoose.Schema({
       delete ret._id;
       delete ret.__v;
       delete ret.password_hash;
+      delete ret.email_otp_hash;
+      delete ret.phone_otp_hash;
+      if (ret.panNumber) {
+        ret.panNumberMasked = `${ret.panNumber.slice(0, 3)}***${ret.panNumber.slice(-1)}`;
+        delete ret.panNumber;
+      }
       return ret;
     },
   },
 });
-
-// Index for faster queries
-userSchema.index({ user_id: 1 });
 
 const User = mongoose.model('User', userSchema);
 

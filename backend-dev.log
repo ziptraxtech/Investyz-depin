@@ -1,0 +1,5 @@
+
+> investyz-backend@1.0.0 dev
+> node src/server.js
+
+[32m[INFO][0m 2026-05-11T14:21:29.295Z - MongoDB connected: test_database

@@ -1,0 +1,1 @@
+[31m[ERROR][0m 2026-05-11T14:26:36.555Z - Signup error: No write concern mode named 'majority/test_database' found in replica set configuration

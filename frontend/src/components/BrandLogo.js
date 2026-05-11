@@ -10,7 +10,7 @@ const BrandLogo = ({ className = '', frameClassName = '', logoClassName = '' }) 
           alt="Investyz logo"
           width="480"
           height="320"
-          fetchPriority="high"
+          fetchpriority="high"
           decoding="async"
           className={`h-full w-full object-cover object-center scale-[1.42] brightness-110 contrast-110 ${logoClassName}`}
         />
