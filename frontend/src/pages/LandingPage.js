@@ -216,7 +216,7 @@ const LandingPage = () => {
     {
       id: 'msme',
       title: 'MSME Registered',
-      logo: '/certifications/msme.png',
+      logo: '/certifications/msme.jpg',
       logoAlt: 'MSME logo',
       glow: 'from-teal-500/10 dark:from-teal-500/20 to-transparent',
       border: 'border-teal-200 dark:border-teal-400/40',
@@ -225,7 +225,7 @@ const LandingPage = () => {
     {
       id: 'iso-9001',
       title: 'ISO 9001 Certified',
-      logo: '/certifications/iso-9001.svg?v=2',
+      logo: '/certifications/iso-9001.png',
       logoAlt: 'ISO 9001 logo',
       glow: 'from-sky-500/10 dark:from-sky-500/20 to-transparent',
       border: 'border-sky-200 dark:border-sky-400/40',
@@ -234,7 +234,7 @@ const LandingPage = () => {
     {
       id: 'iso-14001',
       title: 'ISO 14001 Certified',
-      logo: '/certifications/iso-14001.svg?v=2',
+      logo: '/certifications/iso-14001.png',
       logoAlt: 'ISO 14001 logo',
       glow: 'from-emerald-500/10 dark:from-emerald-500/20 to-transparent',
       border: 'border-emerald-200 dark:border-emerald-400/40',
