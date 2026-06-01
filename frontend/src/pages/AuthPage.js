@@ -3,10 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { SignIn, SignUp, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
 
 const getClerkPublishableKey = () => {
   const buildKey =
@@ -59,9 +56,7 @@ const clerkAppearance = {
 const AuthPage = ({ mode = 'login' }) => {
   const isSignup = mode === 'signup';
   const location = useLocation();
-  const { isAuthenticated, signupWithEmail, loginWithEmail } = useAuth();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
-  const [loading, setLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const redirectTo = searchParams.get('redirect') || '/dashboard';
   const imageUrl = useMemo(() => (
@@ -69,25 +64,6 @@ const AuthPage = ({ mode = 'login' }) => {
       ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?crop=entropy&cs=srgb&fm=jpg&q=85'
       : 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?crop=entropy&cs=srgb&fm=jpg&q=85'
   ), [isSignup]);
-
-  const handleLocalAuth = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    try {
-      if (isSignup) {
-        await signupWithEmail(form);
-        toast.success('Account created. Verify email and phone to start KYC.');
-      } else {
-        await loginWithEmail(form);
-        toast.success('Welcome back');
-      }
-      window.location.assign(redirectTo);
-    } catch (error) {
-      toast.error(error?.response?.data?.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <>
@@ -100,64 +76,35 @@ const AuthPage = ({ mode = 'login' }) => {
                 <div className="w-full">
                   <div className="mb-8">
                     <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                      Investor Access
+                      Clerk Required
                     </p>
                     <h1 className="mt-3 text-3xl md:text-4xl font-semibold font-['Outfit']">
-                      {isSignup ? 'Create your Investyz account' : 'Sign in to Investyz'}
+                      {isSignup ? 'Clerk signup is not configured on localhost yet' : 'Clerk login is not configured on localhost yet'}
                     </h1>
                     <p className="mt-3 text-muted-foreground">
-                      KYC, wallet, and investment access stay protected behind your account.
+                      Production uses Clerk, and this local build only switches to Clerk when a publishable key is present.
                     </p>
                   </div>
-
-                  <form onSubmit={handleLocalAuth} className="space-y-4">
-                    {isSignup && (
-                      <>
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Full name</Label>
-                          <Input id="name" autoComplete="name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="phone">Phone</Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            inputMode="numeric"
-                            autoComplete="tel"
-                            value={form.phone}
-                            onChange={(event) => setForm({ ...form, phone: event.target.value.replace(/\D/g, '').slice(0, 10) })}
-                            required
-                          />
-                        </div>
-                      </>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" autoComplete="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        minLength={8}
-                        autoComplete={isSignup ? 'new-password' : 'current-password'}
-                        value={form.password}
-                        onChange={(event) => setForm({ ...form, password: event.target.value })}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full rounded-full py-6" disabled={loading}>
-                      {loading ? 'Please wait...' : isSignup ? 'Create account' : 'Sign in'}
-                    </Button>
-                  </form>
+                  <Card className="border-cyan-200/80 bg-white/70 dark:border-teal-900/60 dark:bg-[#062430]">
+                    <CardContent className="p-6 space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Add your Clerk publishable key to <code>frontend/.env.local</code> and restart the frontend dev server.
+                      </p>
+                      <div className="rounded-2xl bg-slate-950 px-4 py-3 font-mono text-sm text-cyan-200">
+                        REACT_APP_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Your Clerk application should also allow <code>http://localhost:3000</code> as a development origin and redirect URL.
+                      </p>
+                    </CardContent>
+                  </Card>
 
                   <Button
                     variant="link"
                     className="mt-4 px-0"
-                    onClick={() => window.location.assign(isSignup ? `/login?redirect=${encodeURIComponent(redirectTo)}` : `/signup?redirect=${encodeURIComponent(redirectTo)}`)}
+                    onClick={() => window.location.assign('/')}
                   >
-                    {isSignup ? 'Already have an account? Sign in' : 'New here? Create an account'}
+                    Return to home
                   </Button>
                 </div>
               </section>

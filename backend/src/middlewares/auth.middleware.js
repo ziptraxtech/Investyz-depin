@@ -6,6 +6,11 @@ const { User, UserSession } = require('../models');
 const { sendError } = require('../utils/response');
 const logger = require('../utils/logger');
 const jwt = require('../utils/jwt');
+const {
+  findOrCreateUserFromClerk,
+  parseClerkUserData,
+  verifyClerkToken,
+} = require('../utils/clerk');
 
 /**
  * Extract session token from request
@@ -48,8 +53,22 @@ const requireAuth = async (req, res, next) => {
       }
       userId = session.user_id;
     } else {
-      const payload = jwt.verify(sessionToken);
-      userId = payload.sub;
+      try {
+        const payload = jwt.verify(sessionToken);
+        userId = payload.sub;
+      } catch (jwtError) {
+        const clerkClaims = await verifyClerkToken(sessionToken);
+        const clerkUserData = parseClerkUserData(req.headers['x-clerk-user-data']);
+        const clerkUser = await findOrCreateUserFromClerk({
+          claims: clerkClaims,
+          userData: clerkUserData,
+        });
+
+        req.user = clerkUser.toJSON();
+        req.sessionToken = sessionToken;
+        req.authSource = 'clerk';
+        return next();
+      }
     }
 
     const user = await User.findOne({ user_id: userId });
@@ -65,7 +84,14 @@ const requireAuth = async (req, res, next) => {
     next();
   } catch (error) {
     logger.error('Auth middleware error:', error);
-    return sendError(res, 'Authentication failed', 500);
+    const message = String(error?.message || '');
+    const isAuthError =
+      message.includes('Invalid') ||
+      message.includes('expired') ||
+      message.includes('mismatch') ||
+      message.includes('missing') ||
+      message.includes('Unable to fetch Clerk JWKS');
+    return sendError(res, 'Authentication failed', isAuthError ? 401 : 500);
   }
 };
 
@@ -103,13 +129,38 @@ const optionalAuth = async (req, res, next) => {
     const sessionToken = extractToken(req);
     
     if (sessionToken) {
-      const session = await UserSession.findOne({ session_token: sessionToken });
-      
-      if (session && new Date(session.expires_at) > new Date()) {
-        const user = await User.findOne({ user_id: session.user_id });
-        if (user) {
-          req.user = user.toJSON();
-          req.sessionToken = sessionToken;
+      if (sessionToken.startsWith('sess_')) {
+        const session = await UserSession.findOne({ session_token: sessionToken });
+        
+        if (session && new Date(session.expires_at) > new Date()) {
+          const user = await User.findOne({ user_id: session.user_id });
+          if (user) {
+            req.user = user.toJSON();
+            req.sessionToken = sessionToken;
+          }
+        }
+      } else {
+        try {
+          const payload = jwt.verify(sessionToken);
+          const user = await User.findOne({ user_id: payload.sub });
+          if (user) {
+            req.user = user.toJSON();
+            req.sessionToken = sessionToken;
+          }
+        } catch {
+          try {
+            const clerkClaims = await verifyClerkToken(sessionToken);
+            const clerkUserData = parseClerkUserData(req.headers['x-clerk-user-data']);
+            const clerkUser = await findOrCreateUserFromClerk({
+              claims: clerkClaims,
+              userData: clerkUserData,
+            });
+            req.user = clerkUser.toJSON();
+            req.sessionToken = sessionToken;
+            req.authSource = 'clerk';
+          } catch {
+            // Ignore invalid optional auth.
+          }
         }
       }
     }

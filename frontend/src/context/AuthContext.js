@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClerk, useUser } from '@clerk/clerk-react';
-import apiClient, { unwrap } from '../lib/apiClient';
+import apiClient, { setApiAuthProvider, unwrap } from '../lib/apiClient';
 
 const AuthContext = createContext(null);
 const getClerkPublishableKey = () => {
@@ -48,23 +48,96 @@ const ClerkAuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const { isLoaded, user: clerkUser } = useUser();
   const clerk = useClerk();
+  const [account, setAccount] = useState(null);
+  const [syncing, setSyncing] = useState(false);
   const [walletProfile, setWalletProfile] = useState(null);
 
   const user = useMemo(() => {
-    if (!clerkUser) return null;
+    if (!clerkUser && !account) return null;
+
+    const baseUser = account || {};
+    const fallbackName = buildDisplayName(clerkUser);
+    const fallbackEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
+    const fallbackPicture = clerkUser?.imageUrl || '';
 
     return {
-      user_id: clerkUser.id,
-      id: clerkUser.id,
-      name: buildDisplayName(clerkUser),
-      email: clerkUser.primaryEmailAddress?.emailAddress || '',
-      picture: clerkUser.imageUrl || '',
+      ...baseUser,
+      user_id: baseUser.user_id || clerkUser?.id,
+      id: baseUser.user_id || clerkUser?.id,
+      name: baseUser.name || fallbackName,
+      email: baseUser.email || fallbackEmail,
+      picture: baseUser.picture || fallbackPicture,
       auth_provider: 'clerk',
-      wallet_address: walletProfile?.wallet_address || '',
-      wallet_type: walletProfile?.wallet_type || '',
-      wallet_chain_id: walletProfile?.wallet_chain_id || '',
+      wallet_address: walletProfile?.wallet_address || baseUser.wallet_address || '',
+      wallet_type: walletProfile?.wallet_type || baseUser.wallet_type || '',
+      wallet_chain_id: walletProfile?.wallet_chain_id || baseUser.wallet_chain_id || '',
     };
-  }, [clerkUser, walletProfile]);
+  }, [account, clerkUser, walletProfile]);
+
+  const getClerkApiAuth = useCallback(async () => {
+    if (!clerkUser || !clerk.session) return null;
+
+    const token = await clerk.session.getToken();
+    if (!token) return null;
+
+    return {
+      token,
+      user: {
+        id: clerkUser.id,
+        email: clerkUser.primaryEmailAddress?.emailAddress || '',
+        name: buildDisplayName(clerkUser),
+        picture: clerkUser.imageUrl || '',
+        email_verified: true,
+        phone: clerkUser.primaryPhoneNumber?.phoneNumber || '',
+        phone_verified: Boolean(clerkUser.primaryPhoneNumber?.verification?.status === 'verified'),
+      },
+    };
+  }, [clerk.session, clerkUser]);
+
+  const checkAuth = useCallback(async () => {
+    if (!clerkUser) {
+      setAccount(null);
+      return null;
+    }
+
+    const data = unwrap(await apiClient.get('/api/auth/me'));
+    setAccount(data);
+    return data;
+  }, [clerkUser]);
+
+  React.useEffect(() => {
+    if (!CLERK_ENABLED) return undefined;
+
+    setApiAuthProvider(() => getClerkApiAuth());
+    return () => setApiAuthProvider(null);
+  }, [getClerkApiAuth]);
+
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    if (!clerkUser) {
+      setAccount(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSyncing(true);
+
+    checkAuth()
+      .catch(() => {
+        if (!cancelled) {
+          setAccount(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSyncing(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkAuth, clerkUser, isLoaded]);
 
   const login = () => {
     navigate('/login');
@@ -76,6 +149,7 @@ const ClerkAuthProvider = ({ children }) => {
 
   const logout = async () => {
     await clerk.signOut();
+    setAccount(null);
     setWalletProfile(null);
     navigate('/');
   };
@@ -95,22 +169,26 @@ const ClerkAuthProvider = ({ children }) => {
         user,
         isAuthenticated: !!user,
         setUser: () => {},
-        loading: !isLoaded,
+        loading: !isLoaded || syncing,
         login,
         signup,
         startExternalGoogleAuth: login,
         signupWithEmail: signup,
         loginWithEmail: login,
         loginWithGoogle: login,
-        requestOtp: async () => {
-          throw new Error('OTP verification is handled by the platform auth flow');
+        requestOtp: async (channel, values = {}) => unwrap(await apiClient.post('/api/auth/otp/request', { channel, ...values })),
+        verifyOtp: async (channel, otp) => {
+          const data = unwrap(await apiClient.post('/api/auth/otp/verify', { channel, otp }));
+          setAccount(data);
+          return data;
         },
-        verifyOtp: async () => {
-          throw new Error('OTP verification is handled by the platform auth flow');
+        updateProfile: async (updates) => {
+          const data = unwrap(await apiClient.patch('/api/auth/profile', updates));
+          setAccount(data);
+          return data;
         },
-        updateProfile: async () => user,
         logout,
-        checkAuth: async () => user,
+        checkAuth,
         connectWallet,
       }}
     >

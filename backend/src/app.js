@@ -62,13 +62,19 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-ID'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-ID', 'X-Clerk-User-Data'],
 };
 app.use(cors(corsOptions));
 
 // Request parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const captureRawBody = (req, res, buffer) => {
+  if (buffer?.length) {
+    req.rawBody = buffer.toString('utf8');
+  }
+};
+
+app.use(express.json({ limit: '10mb', verify: captureRawBody }));
+app.use(express.urlencoded({ extended: true, verify: captureRawBody }));
 app.use(cookieParser());
 app.use(sanitizeInput);
 app.use(createRateLimiter({

@@ -49,7 +49,8 @@ export const PaymentSuccess = () => {
           throw new Error('Failed to check payment status');
         }
 
-        const data = await response.json();
+        const result = await response.json();
+        const data = result.data || result;
 
         if (data.payment_status === 'paid') {
           setStatus('success');
@@ -98,8 +99,13 @@ export const PaymentSuccess = () => {
                 <div className="p-4 rounded-xl bg-muted/50 mb-6">
                   <p className="text-sm text-muted-foreground">Amount Invested</p>
                   <p className="text-2xl font-bold">
-                    ${(paymentData.amount_total / 100).toLocaleString()}
+                    Rs {(paymentData.amount_total / 100).toLocaleString()}
                   </p>
+                  {paymentData.payment_method && (
+                    <p className="mt-2 text-sm text-muted-foreground capitalize">
+                      Paid via {paymentData.payment_method === 'gateway' ? 'gateway checkout' : paymentData.payment_method}
+                    </p>
+                  )}
                 </div>
               )}
               <Button

@@ -49,6 +49,14 @@ const Navbar = () => {
     setTheme(isDarkTheme ? 'light' : 'dark');
   };
 
+  const handleLogout = async () => {
+    await logout();
+    if (connected) {
+      await disconnect();
+    }
+    setMobileMenuOpen(false);
+  };
+
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 glass-light dark:glass-dark">
@@ -133,7 +141,7 @@ const Navbar = () => {
                       Profile
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="text-destructive" data-testid="menu-logout">
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive" data-testid="menu-logout">
                       <LogOut className="h-4 w-4 mr-2" />
                       Logout
                     </DropdownMenuItem>
@@ -227,10 +235,7 @@ const Navbar = () => {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-destructive"
-                      onClick={() => {
-                        logout();
-                        setMobileMenuOpen(false);
-                      }}
+                      onClick={handleLogout}
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Logout

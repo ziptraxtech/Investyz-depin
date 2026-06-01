@@ -27,7 +27,7 @@ const paymentSchema = new mongoose.Schema({
   },
   payment_method: {
     type: String,
-    enum: ['stripe', 'crypto'],
+    enum: ['gateway', 'crypto', 'stripe'],
     required: true,
   },
   session_id: {

@@ -20,10 +20,42 @@ const maskAadhaar = (aadhaar) => {
 
 const sanitizeForLog = (payload = {}) => {
   const clone = JSON.parse(JSON.stringify(payload || {}));
-  ['pan', 'panNumber', 'aadhaar', 'aadhaarNumber', 'client_secret'].forEach((key) => {
-    if (clone[key]) clone[key] = '***MASKED***';
-  });
-  return clone;
+  const redact = (value) => {
+    if (Array.isArray(value)) {
+      return value.map(redact);
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, nestedValue]) => {
+          if ([
+            'pan',
+            'panNumber',
+            'id_number',
+            'aadhaar',
+            'aadhaarNumber',
+            'aadhaar_number',
+            'client_secret',
+            'module_secret',
+            'provider_secret',
+            'access_token',
+            'refresh_token',
+            'digilocker_code',
+            'code',
+            'authorization',
+          ].includes(key)) {
+            return [key, '***MASKED***'];
+          }
+
+          return [key, redact(nestedValue)];
+        })
+      );
+    }
+
+    return value;
+  };
+
+  return redact(clone);
 };
 
 module.exports = {

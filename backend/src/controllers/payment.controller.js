@@ -1,40 +1,44 @@
-/**
- * Payment Controller
- * Handles Stripe checkout and payment status
- */
 const { PaymentTransaction, Investment } = require('../models');
 const { sendSuccess, sendError } = require('../utils/response');
 const { INVESTMENT_PLANS } = require('./segments.controller');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 
-// Stripe integration (using emergentintegrations pattern)
-let stripeCheckout = null;
-
-const initStripe = async () => {
-  if (!env.STRIPE_API_KEY) {
-    logger.warn('Stripe API key not configured');
-    return null;
-  }
-  
-  try {
-    // Dynamic import for emergentintegrations
-    const { StripeCheckout } = await import('emergentintegrations/payments/stripe/checkout');
-    return new StripeCheckout(env.STRIPE_API_KEY);
-  } catch (error) {
-    logger.warn('emergentintegrations not available, using mock Stripe');
-    return null;
-  }
+const PAYMENT_METHODS = {
+  gateway: {
+    provider: 'DECENTRO',
+    label: 'Decentro Hosted Checkout',
+    instruments: ['cards', 'netbanking', 'upi'],
+  },
+  crypto: {
+    provider: 'WEB3',
+    label: 'Wallet Payment',
+    instruments: ['wallet_transfer'],
+  },
 };
+
+const buildSuccessUrl = (originUrl, transactionId, paymentMethod) =>
+  `${originUrl}/payment/success?session_id=${transactionId}&method=${paymentMethod}`;
+
+const buildCancelUrl = (originUrl) => `${originUrl}/payment/cancel`;
 
 /**
  * POST /api/payments/checkout
- * Create Stripe checkout session
+ * Create a hosted gateway or wallet payment session
  */
 const createCheckoutSession = async (req, res) => {
   try {
-    const { plan_id, amount, origin_url } = req.body;
+    const {
+      plan_id,
+      amount,
+      origin_url,
+      payment_method = 'gateway',
+      wallet_address = null,
+      wallet_chain_id = null,
+      wallet_type = null,
+    } = req.body;
     const userId = req.user.user_id;
+    const selectedMethod = PAYMENT_METHODS[payment_method];
     
     // Validate plan
     const plan = INVESTMENT_PLANS.find((p) => p.plan_id === plan_id);
@@ -56,37 +60,56 @@ const createCheckoutSession = async (req, res) => {
     if (!origin_url) {
       return sendError(res, 'origin_url required', 400);
     }
+
+    if (!selectedMethod) {
+      return sendError(res, 'Unsupported payment method', 400);
+    }
+
+    if (payment_method === 'crypto' && !wallet_address) {
+      return sendError(res, 'Connect a wallet before using Web3 payment', 400);
+    }
     
     // Create payment transaction record
     const transaction = await PaymentTransaction.create({
       user_id: userId,
       amount: investmentAmount,
       currency: 'usd',
-      payment_method: 'stripe',
+      payment_method,
       status: 'pending',
-      metadata: { plan_id },
+      metadata: {
+        plan_id,
+        segment_id: plan.segment_id,
+        provider: selectedMethod.provider,
+        provider_label: selectedMethod.label,
+        payment_instruments: selectedMethod.instruments,
+        wallet_address,
+        wallet_chain_id,
+        wallet_type,
+      },
     });
     
-    // For demo/test mode - return mock checkout URL
-    const successUrl = `${origin_url}/payment/success?session_id=${transaction.transaction_id}`;
-    const cancelUrl = `${origin_url}/payment/cancel`;
-    
-    // If Stripe is configured, create real session
-    if (env.STRIPE_API_KEY && env.STRIPE_API_KEY !== 'sk_test_emergent') {
-      // Real Stripe integration would go here
-      // Using emergentintegrations library
-    }
-    
-    // Update transaction with session ID
+    const successUrl = buildSuccessUrl(origin_url, transaction.transaction_id, payment_method);
+    const cancelUrl = buildCancelUrl(origin_url);
     transaction.session_id = transaction.transaction_id;
     await transaction.save();
     
-    logger.info(`Checkout session created: ${transaction.transaction_id}`);
+    logger.info(`Payment session created: ${transaction.transaction_id} (${payment_method})`);
     
     return sendSuccess(res, {
-      url: successUrl, // In production, this would be Stripe checkout URL
+      url: successUrl,
+      redirect_url: successUrl,
+      cancel_url: cancelUrl,
       session_id: transaction.transaction_id,
-    }, 'Checkout session created');
+      transaction_id: transaction.transaction_id,
+      payment_method,
+      provider: selectedMethod.provider,
+      provider_label: selectedMethod.label,
+      payment_instruments: selectedMethod.instruments,
+      requires_wallet_confirmation: payment_method === 'crypto',
+      wallet_address,
+      wallet_chain_id,
+      mock_mode: !env.STRIPE_API_KEY,
+    }, 'Payment session created');
     
   } catch (error) {
     logger.error('Create checkout error:', error);
@@ -148,6 +171,8 @@ const getPaymentStatus = async (req, res) => {
       amount_total: transaction.amount * 100, // Stripe uses cents
       currency: transaction.currency,
       transaction_id: transaction.transaction_id,
+      payment_method: transaction.payment_method,
+      metadata: transaction.metadata || {},
     }, 'Payment status retrieved');
     
   } catch (error) {

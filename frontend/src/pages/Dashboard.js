@@ -16,7 +16,7 @@ const API_URL = getFrontendApiUrl();
 
 // Mock data for when backend is not available
 const mockStats = {
-  total_invested: 5000,
+  total_invested: 0,
   total_value: 5250,
   total_earnings: 250,
   active_investments: 2
@@ -195,7 +195,7 @@ const Dashboard = () => {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mb-1">Portfolio Value</p>
-              <p className="text-3xl font-bold">${stats?.portfolio_value?.toLocaleString() || '0'}</p>
+              <p className="text-3xl font-bold">Rs {stats?.portfolio_value?.toLocaleString() || '0'}</p>
             </CardContent>
           </Card>
 
@@ -207,7 +207,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">Total Invested</p>
-              <p className="text-3xl font-bold">${stats?.total_invested?.toLocaleString() || '0'}</p>
+              <p className="text-3xl font-bold">Rs {stats?.total_invested?.toLocaleString() || '0'}</p>
             </CardContent>
           </Card>
 
@@ -220,7 +220,7 @@ const Dashboard = () => {
               </div>
               <p className="text-sm text-muted-foreground mb-1">Total Rewards</p>
               <p className="text-3xl font-bold text-green-500">
-                +${stats?.total_rewards?.toFixed(2) || '0'}
+                +Rs {stats?.total_rewards?.toFixed(2) || '0'}
               </p>
             </CardContent>
           </Card>
@@ -302,7 +302,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">${investment.amount.toLocaleString()}</p>
+                        <p className="font-semibold">Rs {investment.amount.toLocaleString()}</p>
                         <p className="text-sm text-green-500">{investment.apy}% APY</p>
                       </div>
                     </div>
