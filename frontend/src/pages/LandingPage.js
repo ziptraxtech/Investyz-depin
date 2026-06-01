@@ -37,9 +37,11 @@ const API_URL = getFrontendApiUrl();
 const LANDING_SEGMENT_PRIORITY = {
   'battery-storage': 1,
   'ev-charging': 2,
-  'data-centers': 3,
-  'renewable-energy': 4,
-  'green-credits': 5,
+  'ev-passenger-fleets': 3,
+  'ev-cargo-fleets': 4,
+  'data-centers': 5,
+  'renewable-energy': 6,
+  'green-credits': 7,
 };
 
 const LandingPage = () => {
@@ -104,7 +106,7 @@ const LandingPage = () => {
       icon: Shield,
       title: 'Real Asset Backing',
       description: 'Every token is backed by physical infrastructure generating real revenue.',
-      stat: '$190M+',
+      stat: 'Rs 190M+',
       statLabel: 'Total TVL',
     },
     {
@@ -132,7 +134,7 @@ const LandingPage = () => {
     {
       step: '02',
       title: 'Choose Your Segment',
-      description: 'Select from live battery storage and EV DC fast charging opportunities.',
+      description: 'Select from live battery storage, EV fast charging, and EV passenger fleet opportunities.',
     },
     {
       step: '03',
@@ -291,9 +293,9 @@ const LandingPage = () => {
 
   const formatTVL = (value) => {
     if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
+      return `Rs ${(value / 1000000).toFixed(1)}M`;
     }
-    return `$${(value / 1000).toFixed(0)}K`;
+    return `Rs ${(value / 1000).toFixed(0)}K`;
   };
 
   const handleStartInvesting = () => {

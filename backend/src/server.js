@@ -4,6 +4,8 @@
  */
 const app = require('./app');
 const connectDB = require('./config/db');
+const { hasDatabaseUrl, testPostgresConnection } = require('./config/postgres');
+const { ensureSchema } = require('./repositories/kyc.repository');
 const env = require('./config/env');
 const logger = require('./utils/logger');
 
@@ -11,6 +13,10 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+    await testPostgresConnection();
+    if (hasDatabaseUrl()) {
+      await ensureSchema();
+    }
     
     // Start Express server
     const server = app.listen(env.PORT, env.HOST, () => {

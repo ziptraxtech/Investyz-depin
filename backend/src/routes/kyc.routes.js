@@ -16,7 +16,7 @@ const kycLimiter = createRateLimiter({
 
 router.get('/status', requireAuth, asyncHandler(kycController.getStatus));
 router.post('/pan/verify', kycLimiter, requireAuth, requireVerifiedContact, asyncHandler(kycController.verifyPan));
-router.post('/digilocker/session', kycLimiter, requireAuth, requireVerifiedContact, asyncHandler(kycController.createDigilockerSession));
+router.post('/digilocker/session', kycLimiter, requireAuth, asyncHandler(kycController.createDigilockerSession));
 router.post('/digilocker/callback', asyncHandler(kycController.completeDigilockerCallback));
 router.get('/digilocker/callback', asyncHandler(kycController.completeDigilockerCallback));
 router.get('/admin', requireAuth, requireAdmin, asyncHandler(kycController.listAdminKyc));

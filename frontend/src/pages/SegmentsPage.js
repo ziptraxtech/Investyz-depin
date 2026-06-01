@@ -27,9 +27,11 @@ const normalizeSegmentsPayload = (result) => {
 const SEGMENT_PRIORITY = {
   'battery-storage': 1,
   'ev-charging': 2,
-  'data-centers': 3,
-  'renewable-energy': 4,
-  'green-credits': 5,
+  'ev-passenger-fleets': 3,
+  'ev-cargo-fleets': 4,
+  'data-centers': 5,
+  'renewable-energy': 6,
+  'green-credits': 7,
 };
 
 const sortSegmentsForDisplay = (list) =>
@@ -123,9 +125,9 @@ const SegmentsPage = () => {
 
   const formatTVL = (value) => {
     if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
+      return `Rs ${(value / 1000000).toFixed(1)}M`;
     }
-    return `$${(value / 1000).toFixed(0)}K`;
+    return `Rs ${(value / 1000).toFixed(0)}K`;
   };
 
   const filteredSegments = segments.filter((segment) => {

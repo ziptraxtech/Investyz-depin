@@ -99,13 +99,13 @@ const AdminKycPage = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {data.logs.slice(0, 10).map((log) => (
-              <div key={log.log_id} className="rounded-xl border border-border px-4 py-3">
+              <div key={log.id || log.log_id} className="rounded-xl border border-border px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium">{log.message || log.method}</span>
-                  <Badge variant="outline">{log.status}</Badge>
+                  <span className="font-medium">{log.metadata?.message || log.message || log.api_type || log.method}</span>
+                  <Badge variant="outline">{log.response_status || log.status}</Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {log.user_id} · {log.reference_id || 'no reference'} · {new Date(log.created_at).toLocaleString()}
+                  {log.user_id} · {(log.request_id || log.reference_id || log.callback_transaction_id || 'no reference')} · {new Date(log.created_at).toLocaleString()}
                 </p>
               </div>
             ))}

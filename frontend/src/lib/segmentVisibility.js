@@ -1,5 +1,5 @@
 export const HIDDEN_SEGMENT_IDS = ['renewable-energy', 'green-credits'];
-export const FUTURE_SEGMENT_IDS = ['data-centers'];
+export const FUTURE_SEGMENT_IDS = ['ev-cargo-fleets', 'data-centers'];
 
 export const isSegmentHidden = (segmentId) =>
   HIDDEN_SEGMENT_IDS.includes(String(segmentId || ''));

@@ -15,6 +15,7 @@ const env = {
   MONGO_URL: process.env.MONGO_URL || 'mongodb://localhost:27017',
   DB_NAME: process.env.DB_NAME || 'test_database',
   DATABASE_URL: process.env.DATABASE_URL || '',
+  KYC_ENCRYPTION_KEY: process.env.KYC_ENCRYPTION_KEY?.trim() || '',
   
   // CORS
   CORS_ORIGINS: process.env.CORS_ORIGINS || '*',
@@ -37,13 +38,20 @@ const env = {
   DECENTRO_BASE_URL: process.env.DECENTRO_BASE_URL?.trim() || 'https://in.staging.decentro.tech',
   DECENTRO_CLIENT_ID: process.env.DECENTRO_CLIENT_ID?.trim() || '',
   DECENTRO_CLIENT_SECRET: process.env.DECENTRO_CLIENT_SECRET?.trim() || '',
+  DECENTRO_API_TOKEN: process.env.DECENTRO_API_TOKEN?.trim() || '',
   DECENTRO_MODULE_SECRET: process.env.DECENTRO_MODULE_SECRET?.trim() || '',
   DECENTRO_PROVIDER_SECRET: process.env.DECENTRO_PROVIDER_SECRET?.trim() || '',
   DECENTRO_REDIRECT_URL: process.env.DECENTRO_REDIRECT_URL?.trim() || '',
+  DECENTRO_WEBHOOK_SECRET: process.env.DECENTRO_WEBHOOK_SECRET?.trim() || process.env.WEBHOOK_SECRET?.trim() || '',
+  DECENTRO_CONSENT_PURPOSE: process.env.DECENTRO_CONSENT_PURPOSE?.trim() || 'Investor onboarding KYC verification for Investyz users',
   KYC_MOCK_MODE: process.env.KYC_MOCK_MODE !== 'false',
 
   // Google OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID?.trim() || '',
+
+  // Clerk auth
+  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY?.trim() || '',
+  CLERK_ISSUER: process.env.CLERK_ISSUER?.trim() || '',
   
   // Wallet Configuration
   wallets: {

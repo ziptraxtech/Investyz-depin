@@ -29,8 +29,11 @@ const WalletModal = ({ open, onOpenChange }) => {
     const result = await connect(walletTypeToConnect);
     
     if (result.success) {
+      const isPolygonConnection = result.chainId === POLYGON_CHAIN_ID && !result.warning;
       toast.success('Wallet connected!', {
-        description: `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)} on Polygon`,
+        description: isPolygonConnection
+          ? `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)} on Polygon`
+          : `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)}. Switch to Polygon to continue.`,
       });
       
       // Link wallet to user profile if logged in

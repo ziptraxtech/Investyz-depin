@@ -41,6 +41,28 @@ const SEGMENTS = [
     investors_count: 3421,
   },
   {
+    segment_id: 'ev-passenger-fleets',
+    name: 'EV Passenger Fleets',
+    description: 'Invest in electric passenger mobility fleets serving airport routes, urban ride-hailing corridors, and premium shuttle operations. These assets generate recurring usage-based revenue while accelerating clean urban transport adoption.',
+    short_description: 'Move cities with clean mobility',
+    image_url: '/segments/ev-passenger-fleet.png',
+    icon: 'Zap',
+    features: ['Airport Transfers', 'Ride-Hailing Routes', 'Fleet Telemetry', 'Recurring Utilization'],
+    total_tvl: 24000000,
+    investors_count: 1768,
+  },
+  {
+    segment_id: 'ev-cargo-fleets',
+    name: 'EV Cargo Fleets',
+    description: 'Back the next wave of electric cargo fleets powering clean logistics for urban commerce and last-mile delivery networks.',
+    short_description: 'Electrify last-mile logistics',
+    image_url: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?crop=entropy&cs=srgb&fm=jpg&q=85',
+    icon: 'Battery',
+    features: ['Last-Mile Delivery', 'Cold Chain Ready', 'Fleet Routing', 'Depot Charging'],
+    total_tvl: 15000000,
+    investors_count: 0,
+  },
+  {
     segment_id: 'renewable-energy',
     name: 'Renewable Energy Plants',
     description: 'Invest directly in solar farms, wind parks, and hydroelectric facilities. These assets generate clean energy while providing stable, long-term returns backed by power purchase agreements.',
@@ -85,6 +107,11 @@ const INVESTMENT_PLANS = [
   { plan_id: 'ev-120kw', segment_id: 'ev-charging', name: '120 kW DC Fast Charger', min_investment: 15000, max_investment: 50000, apy: 15.0, lock_period_days: 120, risk_level: 'Medium', description: 'High-speed charging unit for highway and premium city locations.', features: ['120 kW DC output', 'Highway-ready', 'Premium charging throughput'] },
   { plan_id: 'ev-180kw', segment_id: 'ev-charging', name: '180 kW DC Fast Charger', min_investment: 25000, max_investment: 85000, apy: 16.5, lock_period_days: 150, risk_level: 'Medium', description: 'Ultra-fast charging infrastructure for high-demand travel corridors.', features: ['180 kW DC output', 'Ultra-fast charging', 'Built for heavy traffic sites'] },
   { plan_id: 'ev-240kw', segment_id: 'ev-charging', name: '240 kW DC Fast Charger', min_investment: 40000, max_investment: 150000, apy: 18.0, lock_period_days: 180, risk_level: 'High', description: 'Flagship ultra-fast charger for major destination and fleet charging hubs.', features: ['240 kW DC output', 'Flagship charger class', 'Best for anchor locations'] },
+  
+  // EV Passenger Fleet Plans
+  { plan_id: 'epf-airport', segment_id: 'ev-passenger-fleets', name: 'Airport Shuttle Pool', min_investment: 300, max_investment: 9000, apy: 10.0, lock_period_days: 45, risk_level: 'Low', description: 'Entry exposure to airport shuttle and hotel transfer EV fleets.', features: ['Frequent daily trips', 'Fleet uptime tracking', 'Low-ticket entry'] },
+  { plan_id: 'epf-urban', segment_id: 'ev-passenger-fleets', name: 'Urban Ride Fleet', min_investment: 9000, max_investment: 35000, apy: 12.75, lock_period_days: 90, risk_level: 'Medium', description: 'Core passenger EV fleet strategy focused on city ride-hailing demand.', features: ['Urban mobility demand', 'Driver utilization metrics', 'Balanced yield profile'] },
+  { plan_id: 'epf-premium', segment_id: 'ev-passenger-fleets', name: 'Premium Intercity Fleet', min_investment: 35000, max_investment: 125000, apy: 15.25, lock_period_days: 180, risk_level: 'Medium', description: 'Premium allocation into higher-value intercity and executive passenger EV routes.', features: ['Higher ticket rides', 'Executive routes', 'Stronger revenue mix'] },
   
   // Renewable Energy Plans
   { plan_id: 're-panel', segment_id: 'renewable-energy', name: 'Solar Panel', min_investment: 200, max_investment: 10000, apy: 7.5, lock_period_days: 60, risk_level: 'Low', description: 'Entry into solar energy investment', features: ['Guaranteed PPAs', 'Weather insurance', 'Stable income'] },

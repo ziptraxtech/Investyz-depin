@@ -1,19 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Slider } from '../components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { useAuth } from '../context/AuthContext';
+import { useWallet } from '../context/WalletContext';
 import { toast } from 'sonner';
 import { getFrontendApiUrl } from '../lib/apiConfig';
+import {
+  buildInvestmentReturnPath,
+  saveInvestmentIntent,
+} from '../lib/investmentIntent';
 import { isSegmentFuture, isSegmentHidden } from '../lib/segmentVisibility';
 import { FALLBACK_PLANS, FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   Server, Battery, Zap, Sun, Leaf, ArrowLeft, Clock, TrendingUp,
-  Shield, AlertTriangle, CheckCircle, DollarSign, Calendar, Lock, MapPin, Navigation
+  Shield, AlertTriangle, CheckCircle, DollarSign, Calendar, Lock, MapPin, Navigation,
+  CreditCard, Wallet
 } from 'lucide-react';
 
 const API_URL = getFrontendApiUrl();
@@ -54,7 +67,9 @@ const EV_PROJECT = {
 const SegmentDetailPage = () => {
   const { segmentId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, login } = useAuth();
+  const { address, walletType, isOnPolygon } = useWallet();
 
   const [segment, setSegment] = useState(null);
   const [plans, setPlans] = useState([]);
@@ -63,6 +78,11 @@ const SegmentDetailPage = () => {
   const [projectedReturns, setProjectedReturns] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
+  const requestedPlanId = searchParams.get('plan');
+  const requestedAmount = Number(searchParams.get('amount') || 0);
+  const shouldResumePayment = searchParams.get('resumePayment') === '1';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -192,6 +212,37 @@ const SegmentDetailPage = () => {
     calculateReturns();
   }, [selectedPlan, investmentAmount]);
 
+  useEffect(() => {
+    if (!requestedPlanId || plans.length === 0) return;
+
+    const matchedPlan = plans.find((plan) => plan.plan_id === requestedPlanId);
+    if (!matchedPlan) return;
+
+    setSelectedPlan(matchedPlan);
+
+    if (requestedAmount) {
+      const clampedAmount = Math.min(
+        matchedPlan.max_investment,
+        Math.max(matchedPlan.min_investment, requestedAmount)
+      );
+      setInvestmentAmount(clampedAmount);
+    }
+  }, [plans, requestedAmount, requestedPlanId]);
+
+  useEffect(() => {
+    if (!shouldResumePayment || !user || !selectedPlan) return;
+    if (!user?.isKycVerified || user?.kycStatus !== 'VERIFIED') return;
+
+    setPaymentDialogOpen(true);
+  }, [selectedPlan, shouldResumePayment, user]);
+
+  const buildReturnPath = () => buildInvestmentReturnPath({
+    segmentId,
+    planId: selectedPlan?.plan_id,
+    amount: investmentAmount,
+    resumePayment: true,
+  });
+
   const handleInvest = async () => {
     if (!user) {
       login();
@@ -204,14 +255,37 @@ const SegmentDetailPage = () => {
     }
 
     if (!user?.isKycVerified || user?.kycStatus !== 'VERIFIED') {
-      toast.info('Complete KYC before investing');
-      navigate('/kyc');
+      const returnTo = buildReturnPath();
+      saveInvestmentIntent({
+        segmentId,
+        planId: selectedPlan.plan_id,
+        amount: investmentAmount,
+        returnTo,
+        preferredKycMethod: 'digilocker',
+      });
+      toast.info('Verify with DigiLocker to continue this investment');
+      navigate(`/kyc?intent=invest&preferred_kyc=digilocker&return_to=${encodeURIComponent(returnTo)}`);
       return;
     }
 
-    // If no backend, show demo message
+    setPaymentDialogOpen(true);
+  };
+
+  const startPayment = async (paymentMethod) => {
+    if (!selectedPlan) return;
+
     if (!API_URL || API_URL === '') {
-      toast.info('Demo mode: Backend required for actual investments');
+      toast.info('Demo mode: Backend required for actual payments');
+      return;
+    }
+
+    if (paymentMethod === 'crypto' && !address) {
+      toast.info('Connect your wallet before using Web3 payment');
+      return;
+    }
+
+    if (paymentMethod === 'crypto' && !isOnPolygon) {
+      toast.info('Switch your wallet to Polygon before continuing');
       return;
     }
 
@@ -225,21 +299,26 @@ const SegmentDetailPage = () => {
           plan_id: selectedPlan.plan_id,
           amount: investmentAmount,
           origin_url: window.location.origin,
+          payment_method: paymentMethod,
+          wallet_address: paymentMethod === 'crypto' ? address : null,
+          wallet_chain_id: paymentMethod === 'crypto' ? String(137) : null,
+          wallet_type: paymentMethod === 'crypto' ? walletType : null,
         }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
+        const result = await response.json();
+        const data = result.data || result;
+        setPaymentDialogOpen(false);
+        window.location.href = data.redirect_url || data.url;
       } else {
         const error = await response.json();
         if (response.status === 403) {
           toast.info('KYC verification is required before investing');
-          navigate('/kyc');
+          navigate(`/kyc?intent=invest&preferred_kyc=digilocker&return_to=${encodeURIComponent(buildReturnPath())}`);
           return;
         }
-        toast.error(error.message || error.detail || 'Failed to create checkout session');
+        toast.error(error.message || error.detail || 'Failed to create payment session');
       }
     } catch (error) {
       toast.error('Failed to initiate payment');
@@ -464,7 +543,7 @@ const SegmentDetailPage = () => {
                         <div>
                           <p className="text-sm text-muted-foreground">Total Value Locked</p>
                           <p className="text-2xl font-bold">
-                            ${(segment.total_tvl / 1000000).toFixed(1)}M
+                            Rs {(segment.total_tvl / 1000000).toFixed(1)}M
                           </p>
                         </div>
                       </div>
@@ -530,7 +609,7 @@ const SegmentDetailPage = () => {
                               {plan.lock_period_days} days
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
-                              ${plan.min_investment.toLocaleString()} - ${plan.max_investment.toLocaleString()}
+                              Rs {plan.min_investment.toLocaleString()} - Rs {plan.max_investment.toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -670,7 +749,7 @@ const SegmentDetailPage = () => {
                       <div className="flex justify-between mb-2">
                         <label className="text-sm font-medium">Investment Amount</label>
                         <span className="text-sm font-bold text-primary">
-                          ${investmentAmount.toLocaleString()}
+                          Rs {investmentAmount.toLocaleString()}
                         </span>
                       </div>
                       <Slider
@@ -683,8 +762,8 @@ const SegmentDetailPage = () => {
                         data-testid="investment-slider"
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>${selectedPlan.min_investment.toLocaleString()}</span>
-                        <span>${selectedPlan.max_investment.toLocaleString()}</span>
+                        <span>Rs {selectedPlan.min_investment.toLocaleString()}</span>
+                        <span>Rs {selectedPlan.max_investment.toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -710,25 +789,25 @@ const SegmentDetailPage = () => {
                           <div className="p-3 rounded-lg bg-muted/50">
                             <p className="text-xs text-muted-foreground">Daily</p>
                             <p className="font-semibold text-primary">
-                              ${projectedReturns.projected_returns.daily.toFixed(2)}
+                              Rs {projectedReturns.projected_returns.daily.toFixed(2)}
                             </p>
                           </div>
                           <div className="p-3 rounded-lg bg-muted/50">
                             <p className="text-xs text-muted-foreground">Monthly</p>
                             <p className="font-semibold text-primary">
-                              ${projectedReturns.projected_returns.monthly.toFixed(2)}
+                              Rs {projectedReturns.projected_returns.monthly.toFixed(2)}
                             </p>
                           </div>
                           <div className="p-3 rounded-lg bg-muted/50">
                             <p className="text-xs text-muted-foreground">Lock Period</p>
                             <p className="font-semibold text-primary">
-                              ${projectedReturns.projected_returns.lock_period.toFixed(2)}
+                              Rs {projectedReturns.projected_returns.lock_period.toFixed(2)}
                             </p>
                           </div>
                           <div className="p-3 rounded-lg bg-muted/50">
                             <p className="text-xs text-muted-foreground">Total Value</p>
                             <p className="font-semibold text-primary">
-                              ${projectedReturns.total_at_end.toLocaleString()}
+                              Rs {projectedReturns.total_at_end.toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -747,7 +826,7 @@ const SegmentDetailPage = () => {
                       ) : user ? (
                         <>
                           <DollarSign className="h-5 w-5 mr-2" />
-                          Invest ${investmentAmount.toLocaleString()}
+                          Invest Rs {investmentAmount.toLocaleString()}
                         </>
                       ) : (
                         'Sign In to Invest'
@@ -757,6 +836,63 @@ const SegmentDetailPage = () => {
                     <p className="text-xs text-center text-muted-foreground">
                       By investing, you agree to our Terms of Service
                     </p>
+
+                    <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+                      <DialogContent className="sm:max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle className="font-['Outfit'] text-2xl">Choose payment method</DialogTitle>
+                          <DialogDescription>
+                            Your investment is KYC-approved. Continue with a hosted payment flow or use your connected Web3 wallet.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="rounded-3xl border border-border bg-muted/20 p-5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">FIAT PAYMENT</p>
+                                <h3 className="mt-2 text-xl font-semibold font-['Outfit']">UPI, Cards & Net Banking</h3>
+                              </div>
+                              <CreditCard className="h-6 w-6 text-primary" />
+                            </div>
+                            <p className="mt-3 text-sm text-muted-foreground">
+                              Use cards, netbanking, UPI, and other standard checkout methods once Decentro credentials are added.
+                            </p>
+                            <Button
+                              className="mt-5 w-full rounded-full"
+                              disabled={checkoutLoading}
+                              onClick={() => startPayment('gateway')}
+                            >
+                              Pay with Gateway
+                            </Button>
+                          </div>
+
+                          <div className="rounded-3xl border border-border bg-muted/20 p-5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">CRYPTO PAYMENT</p>
+                                <h3 className="mt-2 text-xl font-semibold font-['Outfit']">MetaMask & Web3 Wallets</h3>
+                              </div>
+                              <Wallet className="h-6 w-6 text-primary" />
+                            </div>
+                            <p className="mt-3 text-sm text-muted-foreground">
+                              Pay through your connected wallet. Current wallet: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'not connected'}.
+                            </p>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Network status: {isOnPolygon ? 'Polygon ready' : 'Switch to Polygon before continuing'}.
+                            </p>
+                            <Button
+                              variant="outline"
+                              className="mt-5 w-full rounded-full"
+                              disabled={checkoutLoading || !address || !isOnPolygon}
+                              onClick={() => startPayment('crypto')}
+                            >
+                              Pay with Web3
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </>
                 ) : (
                   <p className="text-muted-foreground text-center py-8">

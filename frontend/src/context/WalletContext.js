@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
 const WalletContext = createContext(null);
 
@@ -20,6 +20,7 @@ const WALLET_TYPES = {
 
 // Polygon Network Configuration
 const POLYGON_CHAIN_ID = 137;
+const WALLET_DISCONNECTED_KEY = 'investyz_wallet_disconnected';
 const POLYGON_CONFIG = {
   chainId: `0x${POLYGON_CHAIN_ID.toString(16)}`, // 0x89
   chainName: 'Polygon Mainnet',
@@ -68,16 +69,59 @@ export const WalletProvider = ({ children }) => {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState(null);
   const [switchingChain, setSwitchingChain] = useState(false);
+  const activeProviderRef = useRef(null);
+
+  const getDisconnectPreference = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(WALLET_DISCONNECTED_KEY) === 'true';
+  }, []);
+
+  const setDisconnectPreference = useCallback((value) => {
+    if (typeof window === 'undefined') return;
+    if (value) {
+      window.localStorage.setItem(WALLET_DISCONNECTED_KEY, 'true');
+      return;
+    }
+    window.localStorage.removeItem(WALLET_DISCONNECTED_KEY);
+  }, []);
+
+  const getInjectedProviders = useCallback(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return [];
+    if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length > 0) {
+      return window.ethereum.providers;
+    }
+    return [window.ethereum];
+  }, []);
+
+  const detectWalletType = useCallback((provider) => {
+    if (provider?.isTrust || provider?.isTrustWallet) return WALLET_TYPES.TRUST_WALLET;
+    if (provider?.isCoinbaseWallet) return WALLET_TYPES.COINBASE;
+    if (provider?.isMetaMask) return WALLET_TYPES.METAMASK;
+    return WALLET_TYPES.METAMASK;
+  }, []);
+
+  const getErrorMessage = useCallback((err) => {
+    if (err?.code === 4001) return 'Connection request rejected in wallet';
+    if (err?.code === -32002) return 'A wallet request is already pending. Open the wallet extension and finish it first.';
+
+    const rawMessage = err?.message || '';
+    if (rawMessage.includes('Failed to connect to MetaMask')) {
+      return 'MetaMask could not start the connection. Unlock MetaMask, approve the request there, or disable conflicting wallet extensions and try again.';
+    }
+
+    return rawMessage || 'Failed to connect to wallet';
+  }, []);
 
   // Switch to Polygon network - defined first since other functions depend on it
-  const switchToPolygon = useCallback(async () => {
-    if (!window.ethereum) return { success: false, error: 'No provider' };
+  const switchToPolygon = useCallback(async (providerOverride = null) => {
+    const provider = providerOverride || activeProviderRef.current || getInjectedProviders()[0] || null;
+    if (!provider) return { success: false, error: 'No provider' };
 
     setSwitchingChain(true);
 
     try {
       // Try to switch to Polygon
-      await window.ethereum.request({
+      await provider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: POLYGON_CONFIG.chainId }],
       });
@@ -90,7 +134,7 @@ export const WalletProvider = ({ children }) => {
       // Chain not added to wallet - add it
       if (switchError.code === 4902) {
         try {
-          await window.ethereum.request({
+          await provider.request({
             method: 'wallet_addEthereumChain',
             params: [POLYGON_CONFIG],
           });
@@ -108,27 +152,33 @@ export const WalletProvider = ({ children }) => {
 
       console.error('Failed to switch to Polygon:', switchError);
       setSwitchingChain(false);
-      return { success: false, error: switchError.message };
+      return { success: false, error: getErrorMessage(switchError) };
     }
-  }, []);
+  }, [getErrorMessage, getInjectedProviders]);
 
   // Disconnect function - defined early since handlers use it
-  const disconnect = useCallback(async () => {
+  const disconnect = useCallback(async (options = {}) => {
+    const { remember = true } = options;
     setConnected(false);
     setAddress(null);
     setWalletType(null);
     setChainId(null);
     setError(null);
-  }, []);
+    activeProviderRef.current = null;
+    setDisconnectPreference(remember);
+  }, [setDisconnectPreference]);
 
   // Handler for account changes
   const handleAccountsChanged = useCallback((accounts) => {
     if (accounts.length === 0) {
-      disconnect();
-    } else {
-      setAddress(accounts[0]);
+      disconnect({ remember: false });
+      return;
     }
-  }, [disconnect]);
+
+    if (getDisconnectPreference()) return;
+
+    setAddress(accounts[0]);
+  }, [disconnect, getDisconnectPreference]);
 
   // Handler for chain changes
   const handleChainChanged = useCallback((newChainId) => {
@@ -138,52 +188,56 @@ export const WalletProvider = ({ children }) => {
 
   // Check for existing connection
   const checkConnection = useCallback(async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (getDisconnectPreference()) return;
+
+    const providers = getInjectedProviders();
+    if (providers.length === 0) return;
+
+    try {
+      for (const provider of providers) {
+        const accounts = await provider.request({ method: 'eth_accounts' });
         if (accounts.length > 0) {
+          activeProviderRef.current = provider;
           setAddress(accounts[0]);
           setConnected(true);
-          setWalletType(WALLET_TYPES.METAMASK);
+          setWalletType(detectWalletType(provider));
 
-          const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+          const chainIdHex = await provider.request({ method: 'eth_chainId' });
           const currentChainId = parseInt(chainIdHex, 16);
           setChainId(currentChainId);
 
           // Auto-switch to Polygon if not already on it
           if (currentChainId !== POLYGON_CHAIN_ID) {
-            await switchToPolygon();
+            await switchToPolygon(provider);
           }
+          return;
         }
-      } catch (err) {
-        console.error('Check connection error:', err);
       }
+    } catch (err) {
+      console.error('Check connection error:', err);
     }
-  }, [switchToPolygon]);
+  }, [detectWalletType, getDisconnectPreference, getInjectedProviders, switchToPolygon]);
 
   // Check for existing connection on mount
   useEffect(() => {
     checkConnection();
 
     // Listen for account changes
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
+    const providers = getInjectedProviders();
+    if (providers.length > 0) {
+      providers.forEach((provider) => {
+        provider.on?.('accountsChanged', handleAccountsChanged);
+        provider.on?.('chainChanged', handleChainChanged);
+      });
 
       return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        providers.forEach((provider) => {
+          provider.removeListener?.('accountsChanged', handleAccountsChanged);
+          provider.removeListener?.('chainChanged', handleChainChanged);
+        });
       };
     }
-  }, [checkConnection, handleAccountsChanged, handleChainChanged]);
-
-  const getInjectedProviders = useCallback(() => {
-    if (typeof window === 'undefined' || !window.ethereum) return [];
-    if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length > 0) {
-      return window.ethereum.providers;
-    }
-    return [window.ethereum];
-  }, []);
+  }, [checkConnection, getInjectedProviders, handleAccountsChanged, handleChainChanged]);
 
   const getProvider = useCallback((type) => {
     if (typeof window === 'undefined') return null;
@@ -204,6 +258,7 @@ export const WalletProvider = ({ children }) => {
   const connect = useCallback(async (type = WALLET_TYPES.METAMASK) => {
     setConnecting(true);
     setError(null);
+    setDisconnectPreference(false);
 
     try {
       const provider = getProvider(type);
@@ -214,6 +269,8 @@ export const WalletProvider = ({ children }) => {
         setConnecting(false);
         return { success: false, error: 'Wallet not installed' };
       }
+
+      activeProviderRef.current = provider;
 
       // Request account access
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
@@ -233,7 +290,7 @@ export const WalletProvider = ({ children }) => {
 
       // Auto-switch to Polygon if not already on it
       if (currentChainId !== POLYGON_CHAIN_ID) {
-        const switchResult = await switchToPolygon();
+        const switchResult = await switchToPolygon(provider);
         if (!switchResult.success) {
           // Still connected but on wrong network
           setConnecting(false);
@@ -251,14 +308,13 @@ export const WalletProvider = ({ children }) => {
 
     } catch (err) {
       console.error('Wallet connection error:', err);
-      const errorMessage = err?.code === 4001
-        ? 'Connection request rejected in wallet'
-        : (err?.message || 'Failed to connect to wallet');
+      activeProviderRef.current = null;
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       setConnecting(false);
       return { success: false, error: errorMessage };
     }
-  }, [getProvider, switchToPolygon]);
+  }, [getErrorMessage, getProvider, setDisconnectPreference, switchToPolygon]);
 
   const isOnPolygon = useMemo(() => chainId === POLYGON_CHAIN_ID, [chainId]);
 
