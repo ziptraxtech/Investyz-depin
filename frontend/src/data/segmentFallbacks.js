@@ -54,7 +54,7 @@ export const FALLBACK_SEGMENTS = [
     name: 'EV Cargo Fleets',
     description: 'Back the next wave of electric cargo fleets powering clean logistics for urban commerce and last-mile delivery networks.',
     short_description: 'Electrify last-mile logistics',
-    image_url: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=960&q=70',
+    image_url: '/segments/ev-cargo-fleet.png',
     icon: 'Battery',
     features: ['Last-Mile Delivery', 'Cold Chain Ready', 'Fleet Routing', 'Depot Charging'],
     total_tvl: 15000000,
