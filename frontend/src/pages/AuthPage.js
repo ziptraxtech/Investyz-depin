@@ -122,7 +122,7 @@ const AuthPage = ({ mode = 'login' }) => {
                   <CardContent className="p-6">
                     <p className="text-lg font-semibold">KYC-first investing</p>
                     <p className="mt-2 text-sm text-white/80">
-                      Verify email, phone, PAN, or DigiLocker before accessing EV charging infrastructure deals.
+                      Verify email, phone, and DigiLocker before accessing EV charging infrastructure deals.
                     </p>
                   </CardContent>
                 </Card>

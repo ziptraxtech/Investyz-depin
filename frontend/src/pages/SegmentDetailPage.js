@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
 import { toast } from 'sonner';
 import { getFrontendApiUrl } from '../lib/apiConfig';
+import apiClient, { unwrap } from '../lib/apiClient';
 import {
   buildInvestmentReturnPath,
   saveInvestmentIntent,
@@ -25,7 +26,7 @@ import { isSegmentFuture, isSegmentHidden } from '../lib/segmentVisibility';
 import { FALLBACK_PLANS, FALLBACK_SEGMENTS } from '../data/segmentFallbacks';
 import {
   Server, Battery, Zap, Sun, Leaf, ArrowLeft, Clock, TrendingUp,
-  Shield, AlertTriangle, CheckCircle, DollarSign, Calendar, Lock, MapPin, Navigation,
+  Shield, CheckCircle, DollarSign, Calendar, Lock, MapPin, Navigation,
   CreditCard, Wallet
 } from 'lucide-react';
 
@@ -64,12 +65,58 @@ const EV_PROJECT = {
   dashboardUrl: 'https://insights.zipsureai.com/stations/dashboard?device=9',
 };
 
+const FALLBACK_DISPLAY_CURRENCIES = ['INR', 'USD', 'AED', 'SGD'];
+
+const loadRazorpayCheckoutScript = () =>
+  new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve(window.Razorpay);
+      return;
+    }
+
+    const existingScript = document.querySelector('script[data-razorpay-checkout="true"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(window.Razorpay), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Failed to load Razorpay checkout')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.dataset.razorpayCheckout = 'true';
+    script.onload = () => resolve(window.Razorpay);
+    script.onerror = () => reject(new Error('Failed to load Razorpay checkout'));
+    document.body.appendChild(script);
+  });
+
+const INVESTOR_PROFILE_OPTIONS = [
+  {
+    value: 'domestic',
+    label: 'Indian resident',
+    description: 'For investments from India.',
+    paymentMethod: 'gateway',
+    paymentLabel: 'Local payments',
+    paymentHint: 'UPI, cards, debit cards, credit cards, and net banking.',
+    availability: 'live',
+  },
+  {
+    value: 'international',
+    label: 'International investor',
+    description: 'For investments outside India.',
+    paymentMethod: 'crypto',
+    paymentLabel: 'Crypto payment',
+    paymentHint: 'Wallet-based international payments will be enabled soon.',
+    availability: 'coming_soon',
+  },
+];
+
 const SegmentDetailPage = () => {
   const { segmentId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, login } = useAuth();
-  const { address, walletType, isOnPolygon } = useWallet();
+  const { address, walletType, isOnPolygon, sendErc20Transfer, POLYGON_CHAIN_ID, networkName } = useWallet();
 
   const [segment, setSegment] = useState(null);
   const [plans, setPlans] = useState([]);
@@ -79,6 +126,11 @@ const SegmentDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState(null);
+  const [paymentOptionsLoading, setPaymentOptionsLoading] = useState(false);
+  const [selectedTokenSymbol, setSelectedTokenSymbol] = useState('');
+  const [selectedDisplayCurrency, setSelectedDisplayCurrency] = useState('INR');
+  const [investorProfile, setInvestorProfile] = useState('domestic');
 
   const requestedPlanId = searchParams.get('plan');
   const requestedAmount = Number(searchParams.get('amount') || 0);
@@ -236,12 +288,106 @@ const SegmentDetailPage = () => {
     setPaymentDialogOpen(true);
   }, [selectedPlan, shouldResumePayment, user]);
 
+  useEffect(() => {
+    if (!paymentDialogOpen) return;
+    if (INVESTOR_PROFILE_OPTIONS.find((option) => option.value === investorProfile)?.availability === 'coming_soon') {
+      setPaymentOptions(null);
+      setPaymentOptionsLoading(false);
+      return;
+    }
+
+    if (!API_URL || API_URL === '') {
+      setPaymentOptions({
+        supported_tokens: [
+          { symbol: 'USDC', name: 'USD Coin', configured: false },
+          { symbol: 'USDT', name: 'Tether USD', configured: false },
+          { symbol: 'BNB', name: 'Binance Coin', configured: false },
+        ],
+        supported_display_currencies: FALLBACK_DISPLAY_CURRENCIES,
+        required_confirmations: 1,
+        treasury_configured: false,
+        crypto_ready: false,
+        chain: { chain_id: POLYGON_CHAIN_ID, name: networkName },
+      });
+      return;
+    }
+
+    let cancelled = false;
+    const loadPaymentOptions = async () => {
+      setPaymentOptionsLoading(true);
+      try {
+        const data = unwrap(await apiClient.get('/api/payments/options'));
+        if (!cancelled) {
+          setPaymentOptions(data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(error?.response?.data?.message || 'Failed to load crypto payment options');
+          setPaymentOptions({
+            supported_tokens: [
+              { symbol: 'USDC', name: 'USD Coin', configured: false },
+              { symbol: 'USDT', name: 'Tether USD', configured: false },
+              { symbol: 'BNB', name: 'Binance Coin', configured: false },
+            ],
+            supported_display_currencies: FALLBACK_DISPLAY_CURRENCIES,
+            required_confirmations: 1,
+            treasury_configured: false,
+            crypto_ready: false,
+            chain: { chain_id: POLYGON_CHAIN_ID, name: networkName },
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setPaymentOptionsLoading(false);
+        }
+      }
+    };
+
+    loadPaymentOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [investorProfile, paymentDialogOpen, POLYGON_CHAIN_ID, networkName]);
+
+  useEffect(() => {
+    if (!paymentOptions?.supported_tokens?.length) return;
+    if (selectedTokenSymbol && paymentOptions.supported_tokens.some((token) => token.symbol === selectedTokenSymbol)) {
+      return;
+    }
+    setSelectedTokenSymbol(paymentOptions.supported_tokens[0].symbol);
+  }, [paymentOptions, selectedTokenSymbol]);
+
+  useEffect(() => {
+    const supportedCurrencies = paymentOptions?.supported_display_currencies || FALLBACK_DISPLAY_CURRENCIES;
+    if (supportedCurrencies.includes(selectedDisplayCurrency)) return;
+    setSelectedDisplayCurrency(supportedCurrencies[0] || 'INR');
+  }, [paymentOptions, selectedDisplayCurrency]);
+
   const buildReturnPath = () => buildInvestmentReturnPath({
     segmentId,
     planId: selectedPlan?.plan_id,
     amount: investmentAmount,
     resumePayment: true,
   });
+
+  const supportedDisplayCurrencies =
+    paymentOptions?.supported_display_currencies || FALLBACK_DISPLAY_CURRENCIES;
+  const selectedToken =
+    paymentOptions?.supported_tokens?.find((token) => token.symbol === selectedTokenSymbol) || null;
+  const selectedInvestorProfile = INVESTOR_PROFILE_OPTIONS.find((option) => option.value === investorProfile) || INVESTOR_PROFILE_OPTIONS[0];
+  const selectedPaymentMethod = selectedInvestorProfile.paymentMethod;
+  const selectedPaymentAvailability = selectedInvestorProfile.availability || 'live';
+  const cryptoComingSoon = selectedPaymentAvailability === 'coming_soon';
+  const cryptoPaymentBlockedReason =
+    cryptoComingSoon
+      ? 'International crypto payments are coming soon.'
+      : !paymentOptions
+      ? 'Loading crypto options...'
+      : !paymentOptions.treasury_configured
+        ? 'Treasury wallet is not configured yet.'
+        : !selectedToken?.configured
+          ? `${selectedToken?.symbol || 'Selected token'} is not configured on the backend yet.`
+          : '';
 
   const handleInvest = async () => {
     if (!user) {
@@ -254,8 +400,8 @@ const SegmentDetailPage = () => {
       return;
     }
 
-    if (!user?.isKycVerified || user?.kycStatus !== 'VERIFIED') {
-      const returnTo = buildReturnPath();
+    const returnTo = buildReturnPath();
+    const persistInvestmentIntent = () => {
       saveInvestmentIntent({
         segmentId,
         planId: selectedPlan.plan_id,
@@ -263,6 +409,21 @@ const SegmentDetailPage = () => {
         returnTo,
         preferredKycMethod: 'digilocker',
       });
+    };
+
+    try {
+      const kycStatus = unwrap(await apiClient.get('/api/kyc/status'));
+      if (kycStatus?.mock_mode) {
+        persistInvestmentIntent();
+        navigate(`/kyc?intent=invest&preferred_kyc=digilocker&return_to=${encodeURIComponent(returnTo)}`);
+        return;
+      }
+    } catch {
+      // Fall back to the local auth snapshot if KYC status cannot be fetched.
+    }
+
+    if (!user?.isKycVerified || user?.kycStatus !== 'VERIFIED') {
+      persistInvestmentIntent();
       toast.info('Verify with DigiLocker to continue this investment');
       navigate(`/kyc?intent=invest&preferred_kyc=digilocker&return_to=${encodeURIComponent(returnTo)}`);
       return;
@@ -273,6 +434,11 @@ const SegmentDetailPage = () => {
 
   const startPayment = async (paymentMethod) => {
     if (!selectedPlan) return;
+
+    if (cryptoComingSoon || investorProfile === 'international') {
+      toast.info('International crypto payments are coming soon');
+      return;
+    }
 
     if (!API_URL || API_URL === '') {
       toast.info('Demo mode: Backend required for actual payments');
@@ -285,43 +451,127 @@ const SegmentDetailPage = () => {
     }
 
     if (paymentMethod === 'crypto' && !isOnPolygon) {
-      toast.info('Switch your wallet to Polygon before continuing');
+      toast.info(`Switch your wallet to ${networkName} before continuing`);
+      return;
+    }
+
+    if (paymentMethod === 'crypto' && cryptoPaymentBlockedReason) {
+      toast.info(cryptoPaymentBlockedReason);
       return;
     }
 
     setCheckoutLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/payments/checkout`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan_id: selectedPlan.plan_id,
-          amount: investmentAmount,
-          origin_url: window.location.origin,
-          payment_method: paymentMethod,
-          wallet_address: paymentMethod === 'crypto' ? address : null,
-          wallet_chain_id: paymentMethod === 'crypto' ? String(137) : null,
-          wallet_type: paymentMethod === 'crypto' ? walletType : null,
-        }),
-      });
+      const data = unwrap(await apiClient.post('/api/payments/checkout', {
+        plan_id: selectedPlan.plan_id,
+        amount: investmentAmount,
+        origin_url: window.location.origin,
+        payment_method: paymentMethod,
+        investor_profile: investorProfile,
+        wallet_address: paymentMethod === 'crypto' ? address : null,
+        wallet_chain_id: paymentMethod === 'crypto' ? String(POLYGON_CHAIN_ID) : null,
+        wallet_type: paymentMethod === 'crypto' ? walletType : null,
+        token_symbol: paymentMethod === 'crypto' ? selectedTokenSymbol : null,
+        display_currency: paymentMethod === 'crypto' ? selectedDisplayCurrency : null,
+      }));
 
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data || result;
+      if (paymentMethod === 'crypto') {
+        if (!data?.quote?.token?.address || !data?.quote?.treasury_address) {
+          throw new Error('Crypto token address or treasury wallet is not configured yet.');
+        }
+
+        const txHash = await sendErc20Transfer({
+          tokenAddress: data.quote.token.address,
+          recipient: data.quote.treasury_address,
+          amountAtomic: data.quote.quote_amount_atomic,
+        });
+
+        await apiClient.post('/api/payments/confirm', {
+          session_id: data.session_id,
+          tx_hash: txHash,
+        });
+
         setPaymentDialogOpen(false);
-        window.location.href = data.redirect_url || data.url;
-      } else {
-        const error = await response.json();
-        if (response.status === 403) {
-          toast.info('KYC verification is required before investing');
-          navigate(`/kyc?intent=invest&preferred_kyc=digilocker&return_to=${encodeURIComponent(buildReturnPath())}`);
+        window.location.href = `/payment/success?session_id=${encodeURIComponent(data.session_id)}&method=crypto`;
+        return;
+      }
+
+      if (paymentMethod === 'gateway') {
+        if (data?.mock_mode) {
+          setPaymentDialogOpen(false);
+          window.location.href = data.redirect_url || data.url;
           return;
         }
-        toast.error(error.message || error.detail || 'Failed to create payment session');
+
+        if (!data?.razorpay?.order_id || !data?.razorpay?.key_id) {
+          throw new Error('Razorpay checkout is not configured correctly.');
+        }
+
+        const RazorpayCheckout = await loadRazorpayCheckoutScript();
+        await new Promise((resolve, reject) => {
+          const razorpayInstance = new RazorpayCheckout({
+            key: data.razorpay.key_id,
+            amount: data.razorpay.amount,
+            currency: data.razorpay.currency,
+            name: data.razorpay.name || 'Investyz',
+            description: data.razorpay.description || `Investment in ${selectedPlan.name}`,
+            order_id: data.razorpay.order_id,
+            modal: {
+              ondismiss: () => reject(new Error('Razorpay checkout was closed before payment completion.')),
+            },
+            handler: async (response) => {
+              try {
+                await apiClient.post('/api/payments/verify-razorpay', {
+                  session_id: data.session_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                });
+                resolve();
+              } catch (verificationError) {
+                reject(verificationError);
+              }
+            },
+          });
+
+          razorpayInstance.on('payment.failed', (response) => {
+            const failureMessage =
+              response?.error?.description ||
+              response?.error?.reason ||
+              'Razorpay payment failed';
+            reject(new Error(failureMessage));
+          });
+
+          razorpayInstance.open();
+        });
+
+        setPaymentDialogOpen(false);
+        window.location.href = `/payment/success?session_id=${encodeURIComponent(data.session_id)}&method=gateway`;
+        return;
       }
+
+      setPaymentDialogOpen(false);
+      window.location.href = data.redirect_url || data.url;
     } catch (error) {
-      toast.error('Failed to initiate payment');
+      const status = error?.response?.status;
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+        error?.message;
+
+      if (status === 403) {
+        toast.info('KYC verification is required before investing');
+        navigate(`/kyc?intent=invest&preferred_kyc=digilocker&return_to=${encodeURIComponent(buildReturnPath())}`);
+        return;
+      }
+
+      if (status === 401) {
+        toast.info('Please sign in again to continue with payment');
+        login();
+        return;
+      }
+
+      toast.error(message || 'Failed to initiate payment');
     } finally {
       setCheckoutLoading(false);
     }
@@ -840,54 +1090,98 @@ const SegmentDetailPage = () => {
                     <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
                       <DialogContent className="sm:max-w-2xl">
                         <DialogHeader>
-                          <DialogTitle className="font-['Outfit'] text-2xl">Choose payment method</DialogTitle>
+                          <DialogTitle className="font-['Outfit'] text-2xl">Choose investor type</DialogTitle>
                           <DialogDescription>
-                            Your investment is KYC-approved. Continue with a hosted payment flow or use your connected Web3 wallet.
+                            Select the option that matches your residency.
                           </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-4">
                           <div className="rounded-3xl border border-border bg-muted/20 p-5">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">FIAT PAYMENT</p>
-                                <h3 className="mt-2 text-xl font-semibold font-['Outfit']">UPI, Cards & Net Banking</h3>
-                              </div>
-                              <CreditCard className="h-6 w-6 text-primary" />
+                            <div className="mt-4 grid gap-3 md:grid-cols-2">
+                              {INVESTOR_PROFILE_OPTIONS.map((option) => {
+                                const isSelected = investorProfile === option.value;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => setInvestorProfile(option.value)}
+                                    className={`min-h-[112px] rounded-2xl border p-4 text-left transition-all shadow-sm ${isSelected ? 'border-primary bg-primary/12 ring-2 ring-primary/30 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]' : 'border-border bg-background hover:border-primary/40 hover:shadow-md'}`}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <p className={`font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{option.label}</p>
+                                        <p className="mt-1 text-sm text-muted-foreground">{option.description}</p>
+                                      </div>
+                                      <div className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full border ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
+                                        {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
                             </div>
-                            <p className="mt-3 text-sm text-muted-foreground">
-                              Use cards, netbanking, UPI, and other standard checkout methods once Decentro credentials are added.
-                            </p>
-                            <Button
-                              className="mt-5 w-full rounded-full"
-                              disabled={checkoutLoading}
-                              onClick={() => startPayment('gateway')}
-                            >
-                              Pay with Gateway
-                            </Button>
                           </div>
 
                           <div className="rounded-3xl border border-border bg-muted/20 p-5">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">CRYPTO PAYMENT</p>
-                                <h3 className="mt-2 text-xl font-semibold font-['Outfit']">MetaMask & Web3 Wallets</h3>
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{selectedInvestorProfile.paymentLabel.toUpperCase()}</p>
+                                <h3 className="mt-2 text-xl font-semibold font-['Outfit']">{selectedInvestorProfile.label}</h3>
                               </div>
-                              <Wallet className="h-6 w-6 text-primary" />
+                              {selectedPaymentMethod === 'gateway' ? (
+                                <CreditCard className="h-6 w-6 text-primary" />
+                              ) : (
+                                <Wallet className="h-6 w-6 text-primary" />
+                              )}
                             </div>
                             <p className="mt-3 text-sm text-muted-foreground">
-                              Pay through your connected wallet. Current wallet: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'not connected'}.
+                              {selectedInvestorProfile.paymentHint}
                             </p>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                              Network status: {isOnPolygon ? 'Polygon ready' : 'Switch to Polygon before continuing'}.
-                            </p>
+
+                            {selectedPaymentMethod === 'gateway' ? (
+                              <div className="mt-4 rounded-2xl border border-border bg-background/80 p-4 text-sm">
+                                <p className="font-medium">You will be routed to secure domestic checkout.</p>
+                                <p className="mt-2 text-muted-foreground">
+                                  Supported methods will include UPI, cards, debit cards, credit cards, and net banking through our selected payment gateway.
+                                </p>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="mt-4 rounded-2xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm">
+                                  <p className="font-medium text-amber-800 dark:text-amber-200">Coming soon</p>
+                                  <p className="mt-2 text-amber-700 dark:text-amber-300">
+                                    International wallet-based payments are being prepared. You can still explore plans and complete onboarding, and we will enable this flow once the release is ready.
+                                  </p>
+                                  <p className="mt-3 text-xs text-amber-700/90 dark:text-amber-300/90">
+                                    Wallet connection remains available on the platform, but crypto investment checkout is not live yet.
+                                  </p>
+                                </div>
+                              </>
+                            )}
+
                             <Button
-                              variant="outline"
                               className="mt-5 w-full rounded-full"
-                              disabled={checkoutLoading || !address || !isOnPolygon}
-                              onClick={() => startPayment('crypto')}
+                              disabled={
+                                checkoutLoading ||
+                                cryptoComingSoon ||
+                                (selectedPaymentMethod === 'crypto' && (
+                                  paymentOptionsLoading ||
+                                  !address ||
+                                  !isOnPolygon ||
+                                  !selectedTokenSymbol ||
+                                  Boolean(cryptoPaymentBlockedReason)
+                                ))
+                              }
+                              onClick={() => startPayment(selectedPaymentMethod)}
                             >
-                              Pay with Web3
+                              {checkoutLoading
+                                ? 'Preparing payment...'
+                                : cryptoComingSoon
+                                  ? 'Crypto payments coming soon'
+                                : selectedPaymentMethod === 'crypto'
+                                  ? 'Continue with Web3 payment'
+                                  : 'Continue with fiat payment'}
                             </Button>
                           </div>
                         </div>
@@ -909,3 +1203,4 @@ const SegmentDetailPage = () => {
 };
 
 export default SegmentDetailPage;
+

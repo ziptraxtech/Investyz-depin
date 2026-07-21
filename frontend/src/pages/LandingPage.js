@@ -299,7 +299,7 @@ const LandingPage = () => {
   };
 
   const handleStartInvesting = () => {
-    navigate('/kyc');
+    navigate('/segments');
   };
 
   return (

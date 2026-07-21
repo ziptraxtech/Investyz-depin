@@ -21,38 +21,45 @@ const WalletModal = ({ open, onOpenChange }) => {
     switchToPolygon,
     isOnPolygon,
     POLYGON_CHAIN_ID,
+    networkName,
   } = useWallet();
   const { user, connectWallet } = useAuth();
   const [copied, setCopied] = useState(false);
 
   const handleConnect = async (walletTypeToConnect) => {
-    const result = await connect(walletTypeToConnect);
-    
-    if (result.success) {
-      const isPolygonConnection = result.chainId === POLYGON_CHAIN_ID && !result.warning;
-      toast.success('Wallet connected!', {
-        description: isPolygonConnection
-          ? `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)} on Polygon`
-          : `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)}. Switch to Polygon to continue.`,
-      });
-      
-      // Link wallet to user profile if logged in
-      if (user && connectWallet) {
-        await connectWallet(result.address, walletTypeToConnect, POLYGON_CHAIN_ID);
+    try {
+      const result = await connect(walletTypeToConnect);
+
+      if (result.success) {
+        const isPolygonConnection = result.chainId === POLYGON_CHAIN_ID && !result.warning;
+        toast.success('Wallet connected!', {
+          description: isPolygonConnection
+            ? `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)} on ${networkName}`
+            : `Connected to ${result.address.slice(0, 6)}...${result.address.slice(-4)}. Switch to ${networkName} to continue.`,
+        });
+
+        // Link wallet to user profile if logged in
+        if (user && connectWallet) {
+          await connectWallet(result.address, walletTypeToConnect, POLYGON_CHAIN_ID);
+        }
+
+        if (result.warning) {
+          toast.warning(result.warning);
+        }
+
+        onOpenChange(false);
+      } else if (result.error === 'Wallet not installed') {
+        toast.info('Wallet not found', {
+          description: 'Opening wallet download page...',
+        });
+      } else {
+        toast.error('Connection failed', {
+          description: result.error || 'Please try again',
+        });
       }
-      
-      if (result.warning) {
-        toast.warning(result.warning);
-      }
-      
-      onOpenChange(false);
-    } else if (result.error === 'Wallet not installed') {
-      toast.info('Wallet not found', {
-        description: 'Opening wallet download page...',
-      });
-    } else {
+    } catch (error) {
       toast.error('Connection failed', {
-        description: result.error || 'Please try again',
+        description: error?.message || 'MetaMask could not complete the connection request.',
       });
     }
   };
@@ -73,11 +80,17 @@ const WalletModal = ({ open, onOpenChange }) => {
   };
 
   const handleSwitchToPolygon = async () => {
-    const result = await switchToPolygon();
-    if (result.success) {
-      toast.success('Switched to Polygon network');
-    } else {
-      toast.error('Failed to switch network', { description: result.error });
+    try {
+      const result = await switchToPolygon();
+      if (result.success) {
+        toast.success(`Switched to ${networkName}`);
+      } else {
+        toast.error('Failed to switch network', { description: result.error });
+      }
+    } catch (error) {
+      toast.error('Failed to switch network', {
+        description: error?.message || `Please switch to ${networkName} manually in your wallet.`,
+      });
     }
   };
 
@@ -90,8 +103,8 @@ const WalletModal = ({ open, onOpenChange }) => {
           </DialogTitle>
           <DialogDescription>
             {connected
-              ? 'Manage your connected wallet on Polygon'
-              : 'Connect your EVM wallet to invest on Polygon network'}
+              ? `Manage your connected wallet on ${networkName}`
+              : `Connect your EVM wallet to invest on ${networkName}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -106,7 +119,7 @@ const WalletModal = ({ open, onOpenChange }) => {
                     <span className="font-medium text-yellow-500">Wrong Network</span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Please switch to Polygon network to use Investyz
+                    Please switch to {networkName} to use Investyz
                   </p>
                   <Button 
                     onClick={handleSwitchToPolygon}
@@ -120,7 +133,7 @@ const WalletModal = ({ open, onOpenChange }) => {
                         Switching...
                       </>
                     ) : (
-                      'Switch to Polygon'
+                      `Switch to ${networkName}`
                     )}
                   </Button>
                 </div>
@@ -132,7 +145,7 @@ const WalletModal = ({ open, onOpenChange }) => {
                   <p className="text-sm text-muted-foreground">Connected Address</p>
                   <Badge variant={isOnPolygon ? 'default' : 'secondary'} className="gap-1">
                     <div className="w-2 h-2 rounded-full bg-teal-400" />
-                    {isOnPolygon ? 'Polygon' : `Chain ${chainId}`}
+                    {isOnPolygon ? networkName : `Chain ${chainId}`}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
@@ -169,7 +182,7 @@ const WalletModal = ({ open, onOpenChange }) => {
               <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 mb-2">
                 <div className="w-3 h-3 rounded-full bg-teal-400" />
                 <span className="text-sm font-medium text-teal-600 dark:text-teal-300">
-                  Polygon Network Only
+                  {networkName} Only
                 </span>
               </div>
 
@@ -206,7 +219,7 @@ const WalletModal = ({ open, onOpenChange }) => {
 
         {!connected && (
           <p className="text-xs text-muted-foreground text-center mt-4">
-            Your wallet will automatically switch to Polygon network
+            Your wallet will automatically switch to {networkName}
           </p>
         )}
       </DialogContent>
