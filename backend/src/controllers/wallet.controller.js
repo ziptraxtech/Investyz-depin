@@ -4,12 +4,10 @@
  */
 const { User } = require('../models');
 const { sendSuccess, sendError } = require('../utils/response');
-const { WALLET_TYPES, WALLET_INFO, CHAIN_NAMES } = require('../constants/walletTypes');
+const { WALLET_TYPES, WALLET_INFO } = require('../constants/walletTypes');
 const env = require('../config/env');
 const logger = require('../utils/logger');
-
-// Polygon only configuration
-const POLYGON_CHAIN_ID = 137;
+const { getChainConfig } = require('../services/cryptoPayment.service');
 
 /**
  * GET /api/wallet/supported
@@ -17,6 +15,7 @@ const POLYGON_CHAIN_ID = 137;
  */
 const getSupportedWallets = async (req, res) => {
   try {
+    const activeChain = getChainConfig();
     const supportedWallets = [];
     
     if (env.wallets.METAMASK_ENABLED) {
@@ -44,9 +43,8 @@ const getSupportedWallets = async (req, res) => {
       });
     }
     
-    // Only Polygon supported
     const supportedChains = [
-      { chainId: POLYGON_CHAIN_ID, name: 'Polygon Mainnet' }
+      { chainId: activeChain.chainId, name: activeChain.name }
     ];
     
     return sendSuccess(res, {
@@ -62,12 +60,13 @@ const getSupportedWallets = async (req, res) => {
 
 /**
  * POST /api/wallet/connect
- * Connect wallet to user profile (Polygon only)
+ * Connect wallet to user profile
  */
 const connectWallet = async (req, res) => {
   try {
-    const { wallet_address, wallet_type } = req.body;
+    const { wallet_address, wallet_type, wallet_chain_id } = req.body;
     const userId = req.user.user_id;
+    const activeChain = getChainConfig();
     
     if (!wallet_address) {
       return sendError(res, 'wallet_address required', 400);
@@ -93,18 +92,23 @@ const connectWallet = async (req, res) => {
       return sendError(res, 'Wallet already connected to another account', 409);
     }
     
-    // Update user with wallet info - force Polygon chain
+    const resolvedChainId = Number(wallet_chain_id || activeChain.chainId);
+
+    if (resolvedChainId !== activeChain.chainId) {
+      return sendError(res, `Wallet must be connected to ${activeChain.name}`, 400);
+    }
+
     const updatedUser = await User.findOneAndUpdate(
       { user_id: userId },
       {
         wallet_address: wallet_address.toLowerCase(),
         wallet_type: wallet_type || WALLET_TYPES.METAMASK,
-        chain_id: POLYGON_CHAIN_ID, // Always Polygon
+        chain_id: resolvedChainId,
       },
       { new: true }
     );
     
-    logger.info(`Wallet connected: ${wallet_address} for user ${userId} on Polygon`);
+    logger.info(`Wallet connected: ${wallet_address} for user ${userId} on ${activeChain.name}`);
     
     return sendSuccess(res, updatedUser.toJSON(), 'Wallet connected successfully');
     

@@ -18,20 +18,50 @@ const WALLET_TYPES = {
   COINBASE: 'coinbase',
 };
 
-// Polygon Network Configuration
-const POLYGON_CHAIN_ID = 137;
 const WALLET_DISCONNECTED_KEY = 'investyz_wallet_disconnected';
-const POLYGON_CONFIG = {
-  chainId: `0x${POLYGON_CHAIN_ID.toString(16)}`, // 0x89
-  chainName: 'Polygon Mainnet',
-  nativeCurrency: {
-    name: 'MATIC',
-    symbol: 'MATIC',
-    decimals: 18,
+const INVESTMENT_NETWORK_KEY =
+  (process.env.REACT_APP_CRYPTO_PAYMENT_NETWORK || 'amoy').toLowerCase() === 'mainnet'
+    ? 'mainnet'
+    : 'amoy';
+const CHAIN_CONFIGS = {
+  amoy: {
+    chainId: 80002,
+    chainName: 'Polygon Amoy',
+    nativeCurrency: {
+      name: 'POL',
+      symbol: 'POL',
+      decimals: 18,
+    },
+    rpcUrls: ['https://rpc-amoy.polygon.technology'],
+    blockExplorerUrls: ['https://amoy.polygonscan.com'],
   },
-  rpcUrls: ['https://polygon-rpc.com', 'https://rpc-mainnet.maticvigil.com'],
-  blockExplorerUrls: ['https://polygonscan.com'],
+  mainnet: {
+    chainId: 137,
+    chainName: 'Polygon Mainnet',
+    nativeCurrency: {
+      name: 'POL',
+      symbol: 'POL',
+      decimals: 18,
+    },
+    rpcUrls: ['https://polygon-rpc.com', 'https://rpc-mainnet.maticvigil.com'],
+    blockExplorerUrls: ['https://polygonscan.com'],
+  },
 };
+const ACTIVE_CHAIN_CONFIG = CHAIN_CONFIGS[INVESTMENT_NETWORK_KEY];
+const POLYGON_CHAIN_ID = ACTIVE_CHAIN_CONFIG.chainId;
+const POLYGON_CONFIG = {
+  ...ACTIVE_CHAIN_CONFIG,
+  chainId: `0x${ACTIVE_CHAIN_CONFIG.chainId.toString(16)}`,
+};
+
+const stripHexPrefix = (value = '') => String(value).replace(/^0x/i, '');
+
+const encodeUint256 = (value) => BigInt(value).toString(16).padStart(64, '0');
+
+const encodeAddress = (address) => stripHexPrefix(address).padStart(64, '0');
+
+const encodeErc20TransferData = ({ recipient, amountAtomic }) =>
+  `0xa9059cbb${encodeAddress(recipient)}${encodeUint256(amountAtomic)}`;
 
 // Wallet configurations
 const WALLETS = [
@@ -70,6 +100,7 @@ export const WalletProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [switchingChain, setSwitchingChain] = useState(false);
   const activeProviderRef = useRef(null);
+  const connectInFlightRef = useRef(false);
 
   const getDisconnectPreference = useCallback(() => {
     if (typeof window === 'undefined') return false;
@@ -93,6 +124,26 @@ export const WalletProvider = ({ children }) => {
     return [window.ethereum];
   }, []);
 
+  const isMetaMaskProvider = useCallback((provider) => {
+    if (!provider?.isMetaMask) return false;
+    if (provider?.isTrust || provider?.isTrustWallet) return false;
+    if (provider?.isCoinbaseWallet) return false;
+    if (provider?.isBraveWallet) return false;
+
+    const providerId = String(
+      provider?.providerInfo?.rdns ||
+      provider?.providerInfo?.uuid ||
+      provider?.selectedProviderInfo?.rdns ||
+      ''
+    ).toLowerCase();
+
+    if (providerId && !providerId.includes('metamask')) {
+      return false;
+    }
+
+    return true;
+  }, []);
+
   const detectWalletType = useCallback((provider) => {
     if (provider?.isTrust || provider?.isTrustWallet) return WALLET_TYPES.TRUST_WALLET;
     if (provider?.isCoinbaseWallet) return WALLET_TYPES.COINBASE;
@@ -112,7 +163,42 @@ export const WalletProvider = ({ children }) => {
     return rawMessage || 'Failed to connect to wallet';
   }, []);
 
-  // Switch to Polygon network - defined first since other functions depend on it
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const isKnownMetaMaskFailure = (value) => {
+      const message = String(value?.message || value || '');
+      const stack = String(value?.stack || '');
+
+      return (
+        message.includes('Failed to connect to MetaMask') ||
+        stack.includes('chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn') ||
+        stack.includes('scripts/inpage.js')
+      );
+    };
+
+    const handleUnhandledRejection = (event) => {
+      if (!isKnownMetaMaskFailure(event?.reason)) return;
+      event.preventDefault();
+      console.warn('Suppressed MetaMask connection rejection:', event.reason);
+    };
+
+    const handleWindowError = (event) => {
+      if (!isKnownMetaMaskFailure(event?.error || event?.message)) return;
+      event.preventDefault();
+      console.warn('Suppressed MetaMask connection error:', event.error || event.message);
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleWindowError);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleWindowError);
+    };
+  }, []);
+
+  // Switch to the configured Polygon network - defined first since other functions depend on it
   const switchToPolygon = useCallback(async (providerOverride = null) => {
     const provider = providerOverride || activeProviderRef.current || getInjectedProviders()[0] || null;
     if (!provider) return { success: false, error: 'No provider' };
@@ -120,7 +206,7 @@ export const WalletProvider = ({ children }) => {
     setSwitchingChain(true);
 
     try {
-      // Try to switch to Polygon
+      // Try to switch to the configured Polygon chain
       await provider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: POLYGON_CONFIG.chainId }],
@@ -144,13 +230,13 @@ export const WalletProvider = ({ children }) => {
           return { success: true };
 
         } catch (addError) {
-          console.error('Failed to add Polygon network:', addError);
+          console.error(`Failed to add ${POLYGON_CONFIG.chainName} network:`, addError);
           setSwitchingChain(false);
-          return { success: false, error: 'Failed to add Polygon network' };
+          return { success: false, error: `Failed to add ${POLYGON_CONFIG.chainName} network` };
         }
       }
 
-      console.error('Failed to switch to Polygon:', switchError);
+      console.error(`Failed to switch to ${POLYGON_CONFIG.chainName}:`, switchError);
       setSwitchingChain(false);
       return { success: false, error: getErrorMessage(switchError) };
     }
@@ -206,7 +292,7 @@ export const WalletProvider = ({ children }) => {
           const currentChainId = parseInt(chainIdHex, 16);
           setChainId(currentChainId);
 
-          // Auto-switch to Polygon if not already on it
+          // Auto-switch to the configured Polygon chain if not already on it
           if (currentChainId !== POLYGON_CHAIN_ID) {
             await switchToPolygon(provider);
           }
@@ -245,7 +331,7 @@ export const WalletProvider = ({ children }) => {
 
     switch (type) {
       case WALLET_TYPES.METAMASK:
-        return providers.find((provider) => provider?.isMetaMask) || null;
+        return providers.find((provider) => isMetaMaskProvider(provider)) || null;
       case WALLET_TYPES.TRUST_WALLET:
         return providers.find((provider) => provider?.isTrust || provider?.isTrustWallet) || null;
       case WALLET_TYPES.COINBASE:
@@ -253,9 +339,17 @@ export const WalletProvider = ({ children }) => {
       default:
         return providers[0] || null;
     }
-  }, [getInjectedProviders]);
+  }, [getInjectedProviders, isMetaMaskProvider]);
 
   const connect = useCallback(async (type = WALLET_TYPES.METAMASK) => {
+    if (connectInFlightRef.current || connecting) {
+      return {
+        success: false,
+        error: 'A wallet connection is already in progress. Finish the MetaMask prompt and try again.',
+      };
+    }
+
+    connectInFlightRef.current = true;
     setConnecting(true);
     setError(null);
     setDisconnectPreference(false);
@@ -266,7 +360,6 @@ export const WalletProvider = ({ children }) => {
       if (!provider) {
         const wallet = WALLETS.find(w => w.type === type);
         window.open(wallet?.downloadUrl || 'https://metamask.io/download/', '_blank');
-        setConnecting(false);
         return { success: false, error: 'Wallet not installed' };
       }
 
@@ -288,22 +381,20 @@ export const WalletProvider = ({ children }) => {
       setChainId(currentChainId);
       setConnected(true);
 
-      // Auto-switch to Polygon if not already on it
+      // Auto-switch to the configured Polygon chain if not already on it
       if (currentChainId !== POLYGON_CHAIN_ID) {
         const switchResult = await switchToPolygon(provider);
         if (!switchResult.success) {
           // Still connected but on wrong network
-          setConnecting(false);
           return {
             success: true,
             address: accounts[0],
             chainId: currentChainId,
-            warning: 'Please switch to Polygon network'
+            warning: `Please switch to ${POLYGON_CONFIG.chainName}`
           };
         }
       }
 
-      setConnecting(false);
       return { success: true, address: accounts[0], chainId: POLYGON_CHAIN_ID };
 
     } catch (err) {
@@ -311,10 +402,12 @@ export const WalletProvider = ({ children }) => {
       activeProviderRef.current = null;
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
-      setConnecting(false);
       return { success: false, error: errorMessage };
+    } finally {
+      connectInFlightRef.current = false;
+      setConnecting(false);
     }
-  }, [getErrorMessage, getProvider, setDisconnectPreference, switchToPolygon]);
+  }, [connecting, getErrorMessage, getProvider, setDisconnectPreference, switchToPolygon]);
 
   const isOnPolygon = useMemo(() => chainId === POLYGON_CHAIN_ID, [chainId]);
 
@@ -331,11 +424,32 @@ export const WalletProvider = ({ children }) => {
     connect,
     disconnect,
     switchToPolygon,
+    getActiveProvider: () => activeProviderRef.current,
+    sendErc20Transfer: async ({ tokenAddress, recipient, amountAtomic }) => {
+      const provider = activeProviderRef.current;
+      if (!provider || !address) {
+        throw new Error('Wallet not connected');
+      }
+
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: address,
+            to: tokenAddress,
+            data: encodeErc20TransferData({ recipient, amountAtomic }),
+            value: '0x0',
+          },
+        ],
+      });
+
+      return txHash;
+    },
     isOnPolygon,
     wallets: WALLETS,
     WALLET_TYPES,
     POLYGON_CHAIN_ID,
-    networkName: 'Polygon',
+    networkName: POLYGON_CONFIG.chainName,
   }), [connected, address, walletType, chainId, connecting, switchingChain, error, connect, disconnect, switchToPolygon, isOnPolygon]);
 
   return (

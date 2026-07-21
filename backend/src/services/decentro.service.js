@@ -9,6 +9,12 @@ const client = axios.create({
   timeout: 15000,
 });
 
+const getKycModuleSecret = () =>
+  env.DECENTRO_KYC_AND_ONBOARDING_MODULE_SECRET || env.DECENTRO_MODULE_SECRET;
+
+const getKycProviderSecret = () =>
+  env.DECENTRO_ZOOPONE_PROVIDER_SECRET || env.DECENTRO_PROVIDER_SECRET;
+
 const getHeaders = () => {
   const headers = {
     'Content-Type': 'application/json',
@@ -21,19 +27,24 @@ const getHeaders = () => {
     headers.client_secret = env.DECENTRO_CLIENT_SECRET;
   }
 
-  if (env.DECENTRO_MODULE_SECRET) {
-    headers.module_secret = env.DECENTRO_MODULE_SECRET;
+  const moduleSecret = getKycModuleSecret();
+  if (moduleSecret) {
+    headers.module_secret = moduleSecret;
   }
 
-  if (env.DECENTRO_PROVIDER_SECRET) {
-    headers.provider_secret = env.DECENTRO_PROVIDER_SECRET;
+  const providerSecret = getKycProviderSecret();
+  if (providerSecret) {
+    headers.provider_secret = providerSecret;
   }
 
   return headers;
 };
 
 const hasCredentials = () =>
-  Boolean(env.DECENTRO_API_TOKEN || (env.DECENTRO_CLIENT_ID && env.DECENTRO_CLIENT_SECRET));
+  Boolean(
+    (env.DECENTRO_API_TOKEN || (env.DECENTRO_CLIENT_ID && env.DECENTRO_CLIENT_SECRET))
+    && getKycModuleSecret()
+  );
 
 const getConsentPurpose = () => env.DECENTRO_CONSENT_PURPOSE;
 

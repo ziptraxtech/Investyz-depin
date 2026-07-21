@@ -4,13 +4,14 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { CheckCircle, XCircle, Loader2, ArrowRight } from 'lucide-react';
 import { getFrontendApiUrl } from '../lib/apiConfig';
+import apiClient, { unwrap } from '../lib/apiClient';
 
 const API_URL = getFrontendApiUrl();
 
 export const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState('checking'); // checking, success, failed
+  const [status, setStatus] = useState('checking'); // checking, confirming, success, failed
   const [paymentData, setPaymentData] = useState(null);
   const hasPolled = useRef(false);
 
@@ -32,8 +33,8 @@ export const PaymentSuccess = () => {
     }
 
     const pollPaymentStatus = async (attempts = 0) => {
-      const maxAttempts = 5;
-      const pollInterval = 2000;
+      const maxAttempts = 12;
+      const pollInterval = 3000;
 
       if (attempts >= maxAttempts) {
         setStatus('failed');
@@ -41,20 +42,16 @@ export const PaymentSuccess = () => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/payments/status/${sessionId}`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to check payment status');
-        }
-
-        const result = await response.json();
-        const data = result.data || result;
+        const data = unwrap(await apiClient.get(`/api/payments/status/${sessionId}`));
 
         if (data.payment_status === 'paid') {
           setStatus('success');
           setPaymentData(data);
+          return;
+        } else if (['submitted', 'confirming', 'awaiting_transfer'].includes(data.status)) {
+          setStatus('confirming');
+          setPaymentData(data);
+          setTimeout(() => pollPaymentStatus(attempts + 1), pollInterval);
           return;
         } else if (data.status === 'expired') {
           setStatus('failed');
@@ -76,13 +73,33 @@ export const PaymentSuccess = () => {
     <div className="min-h-screen pt-20 flex items-center justify-center hero-gradient">
       <Card className="max-w-md w-full mx-4">
         <CardContent className="p-8 text-center">
-          {status === 'checking' && (
+          {(status === 'checking' || status === 'confirming') && (
             <>
               <Loader2 className="h-16 w-16 text-primary mx-auto mb-6 animate-spin" />
-              <h1 className="text-2xl font-bold mb-2 font-['Outfit']">Processing Payment</h1>
+              <h1 className="text-2xl font-bold mb-2 font-['Outfit']">
+                {status === 'confirming' ? 'Confirming On-Chain Payment' : 'Processing Payment'}
+              </h1>
               <p className="text-muted-foreground">
-                Please wait while we confirm your payment...
+                {status === 'confirming'
+                  ? 'Your wallet transfer was submitted. We are waiting for the required blockchain confirmations.'
+                  : 'Please wait while we confirm your payment...'}
               </p>
+              {paymentData?.confirmations >= 0 && (
+                <div className="mt-6 rounded-xl bg-muted/50 p-4 text-left">
+                  <p className="text-sm text-muted-foreground">Current confirmations</p>
+                  <p className="text-2xl font-bold">{paymentData.confirmations || 0}</p>
+                  {paymentData?.explorer_url && (
+                    <a
+                      href={paymentData.explorer_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      View transaction on explorer
+                    </a>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -105,6 +122,21 @@ export const PaymentSuccess = () => {
                     <p className="mt-2 text-sm text-muted-foreground capitalize">
                       Paid via {paymentData.payment_method === 'gateway' ? 'gateway checkout' : paymentData.payment_method}
                     </p>
+                  )}
+                  {paymentData?.metadata?.razorpay?.mock_mode && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      This payment was completed using local mock checkout mode.
+                    </p>
+                  )}
+                  {paymentData?.explorer_url && (
+                    <a
+                      href={paymentData.explorer_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      View transaction on explorer
+                    </a>
                   )}
                 </div>
               )}
