@@ -95,16 +95,6 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
-const requireVerifiedContact = (req, res, next) => {
-  if (!req.user?.email_verified || !req.user?.phone_verified) {
-    return sendError(res, 'Email and phone verification are required before KYC', 403, {
-      email_verified: !!req.user?.email_verified,
-      phone_verified: !!req.user?.phone_verified,
-    });
-  }
-  return next();
-};
-
 const requireKycVerified = (req, res, next) => {
   if (!req.user?.isKycVerified || req.user?.kycStatus !== 'VERIFIED') {
     return sendError(res, 'KYC verification required before investing', 403, {
@@ -175,7 +165,6 @@ const optionalAuth = async (req, res, next) => {
 module.exports = {
   requireAuth,
   optionalAuth,
-  requireVerifiedContact,
   requireKycVerified,
   requireAdmin,
   extractToken,

@@ -59,6 +59,7 @@ const termsSections = [
     title: '8. Fees, Payments, And Transactions',
     content: [
       'Some platform activities may involve fees, processing charges, or third-party payment costs, which may be shown during the relevant flow.',
+      'Before investing, you will be asked to select whether you are an Indian resident investor or an international investor. Indian resident investors may use fiat payment methods such as UPI, cards, debit cards, credit cards, and net banking, while international wallet-based payments may be enabled in a later release.',
       'By initiating a transaction, you authorize INVESTYZ and its partners to process it according to your instructions.',
       'We are not responsible for delays caused by banks, payment gateways, networks, third-party outages, or regulatory holds outside our control.',
     ],

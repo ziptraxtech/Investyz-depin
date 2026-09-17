@@ -8,7 +8,10 @@ const { requireAuth, requireKycVerified } = require('../middlewares/auth.middlew
 const { asyncHandler } = require('../middlewares/error.middleware');
 
 // Protected routes
+router.get('/options', requireAuth, requireKycVerified, asyncHandler(paymentController.getPaymentOptions));
 router.post('/checkout', requireAuth, requireKycVerified, asyncHandler(paymentController.createCheckoutSession));
+router.post('/confirm', requireAuth, requireKycVerified, asyncHandler(paymentController.confirmCryptoPayment));
+router.post('/verify-razorpay', requireAuth, requireKycVerified, asyncHandler(paymentController.verifyRazorpayPayment));
 router.get('/status/:sessionId', requireAuth, asyncHandler(paymentController.getPaymentStatus));
 router.get('/history', requireAuth, asyncHandler(paymentController.getPaymentHistory));
 

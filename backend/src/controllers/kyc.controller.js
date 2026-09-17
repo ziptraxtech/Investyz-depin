@@ -22,6 +22,7 @@ const {
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const SUCCESS_STATUSES = new Set(['SUCCESS', 'VALID', 'VERIFIED', 'COMPLETED', 'AUTHENTICATED']);
 const FAILURE_STATUSES = new Set(['FAILED', 'FAILURE', 'REJECTED', 'DENIED', 'ERROR', 'EXPIRED']);
+const isMockKycActive = () => env.KYC_MOCK_MODE || !decentro.hasCredentials();
 const shouldUseMongoKycFlow = () => env.KYC_MOCK_MODE || !hasDatabaseUrl() || !decentro.hasCredentials();
 
 const requestContext = (req) => ({
@@ -201,6 +202,7 @@ const getStatus = async (req, res) => {
       user: mergeUserWithKyc(normalizeMongoUser(mongoUser), mapMongoVerificationSession(session)),
       kyc: mapMongoVerificationSession(session),
       logs: [],
+      mock_mode: isMockKycActive(),
     }, 'KYC status retrieved');
   }
 
@@ -212,6 +214,7 @@ const getStatus = async (req, res) => {
     user: mergeUserWithKyc(normalizeMongoUser(mongoUser), profile?.kyc),
     kyc: profile?.kyc || null,
     logs,
+    mock_mode: isMockKycActive(),
   }, 'KYC status retrieved');
 };
 
@@ -764,11 +767,42 @@ const listAdminKyc = async (req, res) => {
   return sendSuccess(res, { users, logs }, 'Admin KYC data retrieved');
 };
 
+const resetMockKyc = async (req, res) => {
+  if (!isMockKycActive()) {
+    return sendError(res, 'Mock KYC reset is only available while mock mode is active', 403);
+  }
+
+  const mongoUser = await User.findOne({ user_id: req.user.user_id });
+  if (!mongoUser) return sendError(res, 'User not found', 404);
+
+  await VerificationSession.deleteMany({
+    user_id: mongoUser.user_id,
+    method: 'DIGILOCKER',
+  });
+
+  mongoUser.isKycVerified = false;
+  mongoUser.kycStatus = 'NOT_STARTED';
+  mongoUser.kycMethod = null;
+  mongoUser.digilockerVerified = false;
+  mongoUser.aadhaarMasked = null;
+  mongoUser.kycVerifiedName = null;
+  mongoUser.kycSubmittedAt = null;
+  mongoUser.verificationReferenceId = null;
+  await mongoUser.save();
+
+  return sendSuccess(res, {
+    user: normalizeMongoUser(mongoUser),
+    mock_mode: true,
+    reset: true,
+  }, 'Mock KYC reset');
+};
+
 module.exports = {
   completeDigilockerCallback,
   createDigilockerSession,
   getStatus,
   handleDecentroWebhook,
   listAdminKyc,
+  resetMockKyc,
   verifyPan,
 };

@@ -79,10 +79,56 @@ PORT=8001
 NODE_ENV=development
 CORS_ORIGINS=http://localhost:3000,https://YOUR-FRONTEND-NGROK-URL.ngrok-free.dev
 CASHFREE_REDIRECT_URL=https://YOUR-FRONTEND-NGROK-URL.ngrok-free.dev/kyc
+DECENTRO_REDIRECT_URL=https://YOUR-FRONTEND-NGROK-URL.ngrok-free.dev/kyc
 REACT_APP_BACKEND_URL=https://YOUR-BACKEND-NGROK-URL.ngrok-free.dev
 ```
 
 If you are running the backend from your laptop, Cashfree may still reject the request unless the backend's public IP is whitelisted in Secure ID. ngrok helps with HTTPS redirect URLs, but it does not change the backend's outbound IP.
+
+### Decentro staging configuration
+
+The backend already supports Decentro KYC, but it stays in mock mode until the required staging secrets are present in `backend/.env`.
+
+Use the exact env names below when copying values from the Decentro credential sheet:
+
+```env
+DECENTRO_CLIENT_ID=
+DECENTRO_CLIENT_SECRET=
+DECENTRO_KYC_AND_ONBOARDING_MODULE_SECRET=
+DECENTRO_ZOOPONE_PROVIDER_SECRET=
+DECENTRO_REDIRECT_URL=https://YOUR-FRONTEND-DOMAIN/kyc
+DECENTRO_CONSENT_PURPOSE=Investyz DigiLocker KYC
+KYC_MOCK_MODE=false
+```
+
+Notes:
+
+- `DECENTRO_KYC_AND_ONBOARDING_MODULE_SECRET` is treated as the required module secret for the current PAN + DigiLocker flow.
+- `DECENTRO_ZOOPONE_PROVIDER_SECRET` is used automatically for the current KYC flow when a generic `DECENTRO_PROVIDER_SECRET` is not set.
+- Leave the other Decentro module/provider secrets in `.env` too if you plan to enable core banking, financial services, Yes Bank, or Equifax flows later.
+- Decentro consent purpose must stay within 50 characters.
+
+### Vercel deployment notes
+
+This repo's current `vercel.json` deploys only the React frontend. DigiLocker KYC will work in production only when both of the following are true:
+
+1. The frontend is available on a stable public HTTPS URL such as `https://your-frontend.vercel.app`.
+2. `REACT_APP_BACKEND_URL` points to a public backend deployment that serves the `/api` routes.
+
+Recommended production values:
+
+```env
+# Frontend build env in Vercel
+REACT_APP_BACKEND_URL=https://YOUR-BACKEND-DOMAIN
+
+# Backend runtime env wherever the Node API is deployed
+CORS_ORIGINS=https://YOUR-FRONTEND-DOMAIN
+DECENTRO_REDIRECT_URL=https://YOUR-FRONTEND-DOMAIN/kyc
+DECENTRO_CONSENT_PURPOSE=Investyz DigiLocker KYC
+KYC_MOCK_MODE=false
+```
+
+Do not deploy temporary tunnel URLs such as `loca.lt` or `ngrok` as permanent Decentro callback URLs.
 
 ### Environment Variables
 
@@ -102,6 +148,19 @@ JWT_SECRET=your_jwt_secret
 
 # Stripe
 STRIPE_API_KEY=sk_test_xxx
+
+# Crypto payments
+CRYPTO_PAYMENTS_ENABLED=true
+CRYPTO_PAYMENT_NETWORK=amoy
+CRYPTO_TREASURY_ADDRESS=0xYourTreasuryWallet
+CRYPTO_REQUIRED_CONFIRMATIONS=1
+CRYPTO_QUOTE_TTL_SECONDS=900
+CRYPTO_SUPPORTED_FIAT_CURRENCIES=INR,USD,AED,SGD
+CRYPTO_FIAT_BASE_CURRENCY=INR
+POLYGON_AMOY_RPC_URL=https://your-amoy-rpc
+POLYGON_MAINNET_RPC_URL=https://your-mainnet-rpc
+FX_RATE_SOURCE_URL=https://open.er-api.com/v6/latest/USD
+CRYPTO_PAYMENT_TOKENS=[{"symbol":"USDC","name":"USD Coin","address":"0x...","decimals":6,"pricing":"peg_usd"},{"symbol":"USDT","name":"Tether USD","address":"0x...","decimals":6,"pricing":"peg_usd"},{"symbol":"BNB","name":"Binance Token","address":"0x...","decimals":18,"pricing":"manual","usdPrice":600}]
 
 # EVM Wallets
 METAMASK_ENABLED=true
@@ -138,6 +197,8 @@ SUPPORTED_CHAIN_IDS=1,137,56,42161
 
 #### Payments
 - `POST /api/payments/checkout` - Create Stripe checkout
+- `GET /api/payments/options` - Get crypto payment configuration
+- `POST /api/payments/confirm` - Verify a submitted crypto transfer
 - `GET /api/payments/status/:id` - Get payment status
 - `GET /api/payments/history` - Get payment history
 
@@ -154,6 +215,7 @@ The current running backend uses Python FastAPI (`server.py`) due to Emergent pl
 - Coinbase Wallet
 
 ### Supported Chains
+- Polygon Amoy (80002)
 - Ethereum Mainnet (1)
 - Polygon (137)
 - BNB Smart Chain (56)
